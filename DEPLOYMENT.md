@@ -178,26 +178,50 @@ docker compose logs -f backend
 
 If everything started successfully, your application is now live!
 
-*   **Frontend (UI):** Open your browser and navigate to: `http://your-server-ip:3000`
+*   **Frontend (UI):** Open your browser and navigate to: `http://your-server-ip:80`
 *   **Backend (API):** Available at: `http://your-server-ip:5001`
 
 ### Setting up Nginx & SSL (Highly Recommended)
-For a production environment, you should not expose ports 3000 and 5001 directly to the public. Instead, set up a Reverse Proxy (like Nginx or Caddy) to route traffic from port 80/443 to your Docker containers and secure it with an SSL certificate using Let's Encrypt (Certbot).
+For a production environment, you should not expose ports 80 and 5001 directly to the public. Instead, set up a Reverse Proxy (like Nginx or Caddy) to route traffic from port 80/443 to your Docker containers and secure it with an SSL certificate using Let's Encrypt (Certbot).
 
 *Example Nginx configuration:*
-*   Route `your-domain.com` -> `localhost:3000` (Frontend)
+*   Route `your-domain.com` -> `localhost:80` (Frontend)
 *   Route `api.your-domain.com` -> `localhost:5001` (Backend)
 
 *Note: The frontend is pre-built to use relative paths (`/api`). The reverse proxy handles all routing, so you do not need to rebuild the frontend for different domains.*
 
 ---
 
-## 🛠️ 8. Server Maintenance Commands
+---
+## 🌐 9. Microsoft IIS Integration (Windows Server)
 
-**To stop the system:**
-```bash
-docker compose down
+If you need to host NG-VMS behind **Microsoft IIS** (e.g., to use your existing Windows Server infrastructure or SSL certificates), follow this "Gold-Standard" integration strategy.
+
+### Prerequisites
+1.  **Application Request Routing (ARR) 3.0** installed in IIS.
+2.  **URL Rewrite 2.1** installed in IIS.
+3.  **WebSockets** enabled in Windows Features.
+
+### Step 1: Configure IIS as a Reverse Proxy
+1.  Open **IIS Manager**.
+2.  Create a new **Website** (or use an existing one).
+3.  Copy the provided `web.config.example` to the website's root directory and rename it to `web.config`.
+4.  In IIS Manager, select your Server node, open **Application Request Routing Cache**, click **Server Proxy Settings**, and ensure **Enable proxy** is checked.
+
+### Step 2: Deploy using the IIS Stack
+Instead of the standard `docker-compose.yml`, use the specialized IIS integration stack which exposes the necessary ports to the host:
+```powershell
+# Run using the IIS-specific configuration
+docker compose -f docker-compose.iis.yml up -d
 ```
+
+### Step 3: Verify Traffic Flow
+-   **Frontend:** Handled by the catch-all rule → `localhost:3000`
+-   **API:** Handled by the `/api` rule → `localhost:5001`
+-   **Sockets:** Handled by the `/socket.io` rule → `localhost:5001` (WebSocket support must be enabled in ARR).
+
+---
+
 
 **To restart the system:**
 ```bash

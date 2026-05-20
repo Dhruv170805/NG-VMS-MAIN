@@ -116,7 +116,7 @@ services:
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY required}  # BUG FIX: was hardcoded in encryption.ts
     volumes:
-      - ./license.vlic:/app/license.vlic:ro
+      - ./license_NGS.lic:/app/license.vlic:ro
     depends_on:
       mongo: { condition: service_healthy }
       redis: { condition: service_healthy }

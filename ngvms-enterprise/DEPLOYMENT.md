@@ -105,4 +105,20 @@ For high-level system operations, database restores, nodes scaling, or security 
 *   [SSL/TLS Renewal Procedures](file:///opt/ngvms/RUNBOOKS/ssl_renewal.md)
 *   [Server VPS Migration Manual](file:///opt/ngvms/RUNBOOKS/server_migration.md)
 *   [Resource Scaling Nodes Manual](file:///opt/ngvms/RUNBOOKS/scaling_nodes.md)
-*   [Monitoring & Incident Response Plan](file:///opt/ngvms/RUNBOOKS/incident_response.md)
+---
+
+## 🌐 6. Microsoft IIS Integration (Windows Server)
+
+If you need to host NG-VMS behind **Microsoft IIS**, use our specialized integration stack.
+
+### Step 1: IIS Configuration
+1.  Install **ARR 3.0** and **URL Rewrite 2.1** on your Windows Server.
+2.  Enable **Server Proxy** in ARR settings.
+3.  Deploy the provided `web.config.example` to your IIS Site root.
+
+### Step 2: Launch with IIS Stack
+```powershell
+# Deploy with host-exposed ports for IIS
+docker compose -f docker-compose.iis.yml up -d
+```
+

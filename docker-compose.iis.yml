@@ -1,0 +1,87 @@
+# NG-VMS Enterprise — IIS Integration Stack
+# Use this if you want to use Microsoft IIS as your primary Reverse Proxy instead of Caddy.
+
+services:
+  backend:
+    image: ngvms-backend:latest
+    container_name: ngvms_backend
+    restart: unless-stopped
+    ports:
+      - "5001:5001" # Exposed for IIS Proxy
+    environment:
+      NODE_ENV: production
+      PORT: "5001"
+      MONGODB_URI: mongodb://${MONGO_ROOT_USER:-ngvms_root}:${MONGO_ROOT_PASSWORD}@mongo:27017/ngvms?replicaSet=rs0&authSource=admin
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: "9000"
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      SMTP_HOST: smtp_relay
+      SMTP_PORT: "1025"
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+    depends_on:
+      - mongo
+      - redis
+      - minio
+    networks:
+      - ngvms_network
+
+  frontend:
+    image: ngvms-frontend:latest
+    container_name: ngvms_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000" # Exposed for IIS Proxy
+    environment:
+      NODE_ENV: production
+    depends_on:
+      - backend
+    networks:
+      - ngvms_network
+
+  mongo:
+    image: mongo:6
+    container_name: ngvms_mongo
+    command: ["--replSet", "rs0", "--bind_ip_all", "--auth"]
+    restart: unless-stopped
+    networks: [ngvms_network]
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+
+  redis:
+    image: redis:7-alpine
+    container_name: ngvms_redis
+    restart: unless-stopped
+    networks: [ngvms_network]
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+
+  minio:
+    image: minio/minio
+    container_name: ngvms_minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    command: server /data
+    restart: unless-stopped
+    networks: [ngvms_network]
+    volumes:
+      - minio_data:/data
+
+  smtp_relay:
+    image: maildev/maildev
+    container_name: ngvms_smtp
+    restart: unless-stopped
+    networks: [ngvms_network]
+
+networks:
+  ngvms_network:
+    driver: bridge
+
+volumes:
+  mongo_data:
+  minio_data:

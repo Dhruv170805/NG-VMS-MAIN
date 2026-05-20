@@ -53,7 +53,7 @@ export class SecurityManager {
 
   private constructor() {
     // AES Secret Key (256-bit)
-    this.secretKey = process.env.LICENSE_SECRET || '32-char-stable-secret-key-vms-01';
+    this.secretKey = (process.env.LICENSE_SECRET || '32-char-stable-secret-key-vms-01').substring(0, 32);
     
     // RSA Public Key (Standard PEM)
     const publicKeyPath = path.join(process.cwd(), 'public.pem');

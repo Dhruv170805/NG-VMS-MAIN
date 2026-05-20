@@ -1,57 +1,116 @@
 #!/bin/bash
-# NG-VMS Enterprise Restore Script
-# Usage: ./restore.sh <path_to_backup.tar.gz>
+# ==============================================================================
+#                 NG-VMS ENTERPRISE DISASTER RECOVERY RESTORE UTILITY
+# ==============================================================================
+# Goal: Reconstruct database and asset storage from any directory or tar.gz archive.
+# Target: Production systems. WARNING: Destructive overwrite sequence.
+# ==============================================================================
 
-set -e
+set -euo pipefail
 
-if [ -z "$1" ]; then
-  echo "Usage: ./restore.sh <path_to_backup.tar.gz>"
-  exit 1
-fi
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
 
-BACKUP_FILE=$1
-if [ ! -f "$BACKUP_FILE" ]; then
-  echo "Error: File $BACKUP_FILE not found."
-  exit 1
-fi
+log() { echo -e "${GREEN}[INFO]${NC} $*"; }
+warn() { echo -e "${YELLOW}[WARN]${NC} $*"; }
+err() { echo -e "${RED}[ERROR]${NC} $*"; exit 1; }
 
-echo "======================================"
-echo " NG-VMS Enterprise Restore Process"
-echo "======================================"
-
-# Ensure .env exists
-if [ ! -f .env ]; then
-  echo "Error: .env file not found."
-  exit 1
-fi
-
-source .env
-
-TMP_DIR="$(pwd)/tmp_restore"
-mkdir -p "$TMP_DIR"
-
-echo "[1/4] Extracting backup archive..."
-tar -xzf "$BACKUP_FILE" -C "$TMP_DIR"
-EXTRACTED_FOLDER=$(ls -d "$TMP_DIR"/* | head -n 1)
-
-echo "[2/4] Restoring MongoDB..."
-docker cp "$EXTRACTED_FOLDER/mongo" ngvms_mongo:/data/db/restore_dump
-docker exec ngvms_mongo mongorestore --username "${MONGO_ROOT_USER:-admin}" --password "${MONGO_ROOT_PASSWORD:-NGVmsEnterpriseDB2026!}" --authenticationDatabase admin --drop /data/db/restore_dump
-docker exec ngvms_mongo rm -rf /data/db/restore_dump
-
-echo "[3/4] Restoring MinIO..."
-if [ -d "$EXTRACTED_FOLDER/minio_data" ]; then
-  echo "Restoring MinIO objects directly to volume..."
-  docker cp "$EXTRACTED_FOLDER/minio_data/." ngvms_minio:/data/
-  docker restart ngvms_minio
+# Load environmental variables
+if [ -f .env ]; then
+    source .env
 else
-  echo "MinIO data folder not found in backup, skipping."
+    err "Configuration .env file missing in current folder."
 fi
 
-echo "[4/4] Cleaning up..."
-rm -rf "$TMP_DIR"
+if [ -z "${1:-}" ]; then
+    echo -e "${RED}Usage:${NC} ./restore.sh <backup_path>"
+    echo "Examples:"
+    echo "  ./restore.sh ./backups/ngvms_backup_2026-05-18_12-00-00.tar.gz"
+    echo "  ./restore.sh ./backups/ngvms_backup_2026-05-18_12-00-00"
+    exit 1
+fi
 
+TARGET_PATH=$1
+TEMP_DIR=""
+
+# Check if target is a tar.gz file and exists
+if [[ "$TARGET_PATH" == *.tar.gz ]]; then
+    if [ ! -f "$TARGET_PATH" ]; then
+        err "Backup archive file $TARGET_PATH not found."
+    fi
+    log "Backup archive detected. Provisioning safe extraction space..."
+    TEMP_DIR=$(mktemp -d -p "$(pwd)/backups" -t "restore_tmp_XXXXXXXX")
+    tar -xzf "$TARGET_PATH" -C "$TEMP_DIR"
+    
+    # Find extracted folder nesting
+    BACKUP_DIR=$(find "$TEMP_DIR" -mindepth 1 -maxdepth 1 -type d | head -n 1)
+    if [ -z "$BACKUP_DIR" ]; then
+        BACKUP_DIR="$TEMP_DIR"
+    fi
+else
+    BACKUP_DIR=$TARGET_PATH
+    if [ ! -d "$BACKUP_DIR" ]; then
+        err "Backup directory $BACKUP_DIR not found."
+    fi
+fi
+
+# Cleanup trigger on script cancellation or exit
+cleanup() {
+    if [ -n "$TEMP_DIR" ] && [ -d "$TEMP_DIR" ]; then
+        log "Cleaning up extraction workspaces..."
+        rm -rf "$TEMP_DIR"
+    fi
+}
+trap cleanup EXIT
+
+echo -e "${RED}"
+echo "======================================================================"
+echo "          ⚠️  NG-VMS ENTERPRISE PRODUCTION RESTORE UTILITY ⚠️          "
+echo "======================================================================"
+echo -e "${NC}"
+echo "  Target Source: $TARGET_PATH"
+echo "  WARNING: This sequence will permanently drop and overwrite all"
+echo "           active database collections and storage buckets."
 echo ""
-echo "======================================"
-echo " Restore completed successfully!"
-echo "======================================"
+echo -n "  To proceed, type 'CONFIRM': "
+read -r CONFIRMATION
+
+if [ "$CONFIRMATION" != "CONFIRM" ]; then
+    log "Operation aborted. Exiting safely."
+    exit 0
+fi
+
+# ── 1. DB RECONSTRUCTION ──────────────────────────────────────────────────────
+if [ -f "$BACKUP_DIR/mongodb_ngvms.gz" ]; then
+    log "Initiating database reconstruction (mongorestore)..."
+    docker exec -i ngvms_mongo mongorestore \
+        --username "${MONGO_ROOT_USER:-ngvms_root}" \
+        --password "${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD required}" \
+        --authenticationDatabase admin \
+        --drop --gzip --archive < "$BACKUP_DIR/mongodb_ngvms.gz"
+    log "Database reconstruction finished."
+else
+    warn "No database archive 'mongodb_ngvms.gz' found inside backup folder. Bypassing MongoDB restore."
+fi
+
+# ── 2. OBJECTS STORAGE RECONSTRUCTION ─────────────────────────────────────────
+if [ -f "$BACKUP_DIR/minio_data.tar.gz" ]; then
+    log "Initiating asset storage reconstruction..."
+    docker run --rm --volumes-from ngvms_minio -v "$(pwd)/$BACKUP_DIR":/backup alpine sh -c "cd /data && rm -rf * && tar xzf /backup/minio_data.tar.gz -C /"
+    log "Asset storage reconstruction finished."
+else
+    warn "No asset storage archive 'minio_data.tar.gz' found inside backup folder. Bypassing MinIO restore."
+fi
+
+# ── 3. HEALTH DIAGNOSTIC POST-CHECK ───────────────────────────────────────────
+log "Validating active system health..."
+if docker exec ngvms_mongo mongosh -u "${MONGO_ROOT_USER:-ngvms_root}" -p "${MONGO_ROOT_PASSWORD}" --authenticationDatabase admin --quiet --eval "db.getMongo().getDBs()" &>/dev/null; then
+    echo "======================================================================"
+    echo -e "${GREEN}  ✅ PLATFORM SUCCESSFULLY RESTORED${NC}"
+    echo "======================================================================"
+else
+    err "Platform restored, but connectivity checks to MongoDB failed!"
+fi

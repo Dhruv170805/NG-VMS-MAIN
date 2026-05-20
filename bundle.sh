@@ -50,29 +50,44 @@ log "Images exported: $(du -h ${IMAGES_TAR} | cut -f1)"
 log "Assembling bundle..."
 rm -rf "${BUNDLE_DIR}"
 mkdir -p "${BUNDLE_DIR}/monitoring"
+mkdir -p "${BUNDLE_DIR}/caddy"
 
 # Core deployment files — NO source code
-cp docker-compose.prod.yml   "${BUNDLE_DIR}/docker-compose.yml"
-cp Caddyfile                 "${BUNDLE_DIR}/Caddyfile"
-cp .env.example              "${BUNDLE_DIR}/.env.example"
-cp install.sh                "${BUNDLE_DIR}/install.sh"
-cp install.ps1               "${BUNDLE_DIR}/install.ps1"
-cp launcher.bat              "${BUNDLE_DIR}/launcher.bat"
-cp README.md                 "${BUNDLE_DIR}/README.md"
-cp monitoring/prometheus.yml "${BUNDLE_DIR}/monitoring/prometheus.yml"
-cp monitoring/alert.rules.yml "${BUNDLE_DIR}/monitoring/alert.rules.yml"
+cp docker-compose.prod.yml     "${BUNDLE_DIR}/docker-compose.yml"
+cp docker-compose.iis.yml      "${BUNDLE_DIR}/docker-compose.iis.yml"
+cp Caddyfile                   "${BUNDLE_DIR}/Caddyfile"
+cp web.config.example          "${BUNDLE_DIR}/web.config.example"
+cp .env.example                "${BUNDLE_DIR}/.env.example"
+cp ngvms-enterprise/install.sh "${BUNDLE_DIR}/install.sh"
+cp ngvms-enterprise/update.sh  "${BUNDLE_DIR}/update.sh"
+cp ngvms-enterprise/restore.sh "${BUNDLE_DIR}/restore.sh"
+cp ngvms-enterprise/healthcheck.sh "${BUNDLE_DIR}/healthcheck.sh"
+cp install.ps1                 "${BUNDLE_DIR}/install.ps1"
+cp launcher.bat                "${BUNDLE_DIR}/launcher.bat"
+cp README.md                   "${BUNDLE_DIR}/README.md"
+cp monitoring/prometheus.yml   "${BUNDLE_DIR}/monitoring/prometheus.yml"
+cp monitoring/alert.rules.yml  "${BUNDLE_DIR}/monitoring/alert.rules.yml"
 cp monitoring/alertmanager.yml "${BUNDLE_DIR}/monitoring/alertmanager.yml"
 
 # License file (if present)
-[ -f license.vlic ] && cp license.vlic "${BUNDLE_DIR}/license.vlic" \
-  && log "license.vlic included" \
-  || warn "license.vlic NOT found — client must supply their own"
+if [ -f license_NGS.lic ]; then
+  cp license_NGS.lic "${BUNDLE_DIR}/license_NGS.lic"
+  log "license_NGS.lic included"
+elif [ -f license.vlic ]; then
+  cp license.vlic "${BUNDLE_DIR}/license_NGS.lic"
+  log "license.vlic included (as license_NGS.lic)"
+else
+  warn "License file NOT found — client must supply their own"
+fi
 
 # Image tarball
 mv "${IMAGES_TAR}" "${BUNDLE_DIR}/${IMAGES_TAR}"
 
 # Make scripts executable
 chmod +x "${BUNDLE_DIR}/install.sh"
+chmod +x "${BUNDLE_DIR}/update.sh"
+chmod +x "${BUNDLE_DIR}/restore.sh"
+chmod +x "${BUNDLE_DIR}/healthcheck.sh"
 
 # ── Pack ────────────────────────────────────────────────────────────────────
 log "Packing → ${OUTPUT}..."
