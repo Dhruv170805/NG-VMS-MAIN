@@ -77,8 +77,10 @@ services:
     environment:
       - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER:-admin}
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:-NGVmsEnterpriseDB2026!}
-    command: >
-      bash -c " cp /data/mongo/mongo.key /tmp/mongo.key && chmod 400 /tmp/mongo.key && chown 999:999 /tmp/mongo.key && exec mongod --replSet rs0 --bind_ip_all --quiet --auth --keyFile /tmp/mongo.key "
+    command:
+      - bash
+      - -c
+      - cp /data/mongo/mongo.key /tmp/mongo.key && chmod 400 /tmp/mongo.key && chown 999:999 /tmp/mongo.key && exec mongod --replSet rs0 --bind_ip_all --quiet --auth --keyFile /tmp/mongo.key
     healthcheck:
       test: [ "CMD", "mongosh", "-u", "${MONGO_ROOT_USER:-admin}", "-p", "${MONGO_ROOT_PASSWORD:-NGVmsEnterpriseDB2026!}", "--authenticationDatabase", "admin", "--quiet", "--eval", "db.adminCommand({ping:1})" ]
       interval: 30s
@@ -128,7 +130,7 @@ services:
     environment:
       - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-ngvmsadmin}
       - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-EnterpriseMinioPass2026!}
-    command: server /data --console-address ":9001"
+    command: ["server", "/data", "--console-address", ":9001"]
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
       interval: 30s
