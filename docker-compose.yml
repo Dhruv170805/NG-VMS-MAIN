@@ -11,7 +11,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=5001
-      - MONGODB_URI=${MONGODB_URI:-mongodb://mongo:27017/ngvms?replicaSet=rs0}
+      - MONGODB_URI=${MONGODB_URI:-mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-NGVmsEnterpriseDB2026!}@mongo:27017/ngvms?replicaSet=rs0&authSource=admin}
       - REDIS_URL=${REDIS_URL:-redis://redis:6379}
       - JWT_SECRET=${JWT_SECRET:-YOUR_SUPER_SECRET_PRODUCTION_KEY}
       - MINIO_ENDPOINT=${MINIO_ENDPOINT:-minio}
@@ -80,7 +80,7 @@ services:
     command: >
       bash -c " cp /data/mongo/mongo.key /tmp/mongo.key && chmod 400 /tmp/mongo.key && chown 999:999 /tmp/mongo.key && exec mongod --replSet rs0 --bind_ip_all --quiet --auth --keyFile /tmp/mongo.key "
     healthcheck:
-      test: [ "CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')" ]
+      test: [ "CMD-SHELL", "mongosh -u ${MONGO_ROOT_USER:-admin} -p ${MONGO_ROOT_PASSWORD:-NGVmsEnterpriseDB2026!} --authenticationDatabase admin --quiet --eval \"db.adminCommand({ping:1})\"" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -103,21 +103,22 @@ services:
     restart: "no"
     networks:
       - ngvms_network
-    command: >
-      bash -c "
-      echo 'Waiting for MongoDB to start...';
-      for i in {1..30}; do
-        if mongosh --host mongo:27017 -u '${MONGO_ROOT_USER:-admin}' -p '${MONGO_ROOT_PASSWORD:-NGVmsEnterpriseDB2026!}' --authenticationDatabase admin --quiet --eval 'db.adminCommand({ping:1})' >/dev/null 2>&1; then
-          echo 'MongoDB is ready, initiating replica set...';
-          mongosh --host mongo:27017 -u '${MONGO_ROOT_USER:-admin}' -p '${MONGO_ROOT_PASSWORD:-NGVmsEnterpriseDB2026!}' --authenticationDatabase admin --quiet --eval 'try { rs.status() } catch (err) { rs.initiate({_id:\"rs0\",members:[{_id:0,host:\"mongo:27017\"}]}) }';
-          exit 0;
-        fi;
-        echo 'MongoDB not ready yet, retrying in 2s...';
-        sleep 2;
-      done;
-      echo 'MongoDB connection timed out!';
-      exit 1;
-      "
+    command:
+      - /bin/bash
+      - -c
+      - |
+        echo 'Waiting for MongoDB to be ready...';
+        for i in {1..30}; do
+          if mongosh --host mongo:27017 -u "${MONGO_ROOT_USER:-admin}" -p "${MONGO_ROOT_PASSWORD:-NGVmsEnterpriseDB2026!}" --authenticationDatabase admin --quiet --eval "db.adminCommand({ping:1})" > /dev/null 2>&1; then
+            echo 'MongoDB is up. Initiating replica set...';
+            mongosh --host mongo:27017 -u "${MONGO_ROOT_USER:-admin}" -p "${MONGO_ROOT_PASSWORD:-NGVmsEnterpriseDB2026!}" --authenticationDatabase admin --quiet --eval "try { rs.status() } catch (err) { rs.initiate({_id:'rs0',members:[{_id:0,host:'mongo:27017'}]}) }"
+            exit 0
+          fi
+          echo "MongoDB not ready yet (attempt $$i), sleeping 5s...";
+          sleep 5
+        done
+        echo 'Failed to connect to MongoDB after 150 seconds.';
+        exit 1
 
   minio:
     image: minio/minio
