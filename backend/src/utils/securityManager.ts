@@ -209,7 +209,7 @@ export class SecurityManager {
         valid: true,
         data: {
           company: payload.company,
-          companyCode: payload.companyCode,
+          companyCode: payload.companyCode || payload.urls?.["Tenant id "] || payload.company,
           project: payload.project,
           features: {
             email: !!payload.features?.email,

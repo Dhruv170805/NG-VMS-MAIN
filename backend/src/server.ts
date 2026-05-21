@@ -174,7 +174,7 @@ mongoose
               adminPassword,
               guardName: 'Main Gate Guard',
               guardEmail: `guard@${subdomain}.com`,
-              guardPassword: 'guardpassword123',
+              guardPassword: adminPassword,
               licenseKey: licenseKeyString
             });
             console.log(`[NG-VMS] Auto-bootstrapping complete! Tenant: ${companyName}, Admin: ${adminEmail}`);
