@@ -38,5 +38,6 @@ const EmployeeSchema: Schema = new Schema({
 
 // Email should be unique per tenant
 EmployeeSchema.index({ tenantId: 1, email: 1 }, { unique: true });
+EmployeeSchema.index({ tenantId: 1, isHost: 1, name: 1 });
 
 export default mongoose.model<IEmployee>('Employee', EmployeeSchema);

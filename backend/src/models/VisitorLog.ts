@@ -23,4 +23,6 @@ const VisitorLogSchema: Schema = new Schema({
   meta: { type: Schema.Types.Mixed },
 }, { timestamps: { createdAt: true, updatedAt: false } });
 
+VisitorLogSchema.index({ visitorId: 1, tenantId: 1, createdAt: 1 });
+
 export default mongoose.model<IVisitorLog>('VisitorLog', VisitorLogSchema);
