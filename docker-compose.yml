@@ -80,7 +80,7 @@ services:
     command: >
       bash -c " cp /data/mongo/mongo.key /tmp/mongo.key && chmod 400 /tmp/mongo.key && chown 999:999 /tmp/mongo.key && exec mongod --replSet rs0 --bind_ip_all --quiet --auth --keyFile /tmp/mongo.key "
     healthcheck:
-      test: mongosh -u ${MONGO_ROOT_USER:-admin} -p ${MONGO_ROOT_PASSWORD:-NGVmsEnterpriseDB2026!} --authenticationDatabase admin --quiet --eval 'db.adminCommand({ping:1})'
+      test: [ "CMD", "mongosh", "-u", "${MONGO_ROOT_USER:-admin}", "-p", "${MONGO_ROOT_PASSWORD:-NGVmsEnterpriseDB2026!}", "--authenticationDatabase", "admin", "--quiet", "--eval", "db.adminCommand({ping:1})" ]
       interval: 30s
       timeout: 10s
       retries: 5

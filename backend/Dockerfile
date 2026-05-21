@@ -70,6 +70,6 @@ EXPOSE 9464
 
 # Healthcheck via /health endpoint
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD curl -f http://localhost:5001/health || exit 1
+  CMD ["curl", "-f", "http://localhost:5001/health"]
 
 CMD ["node", "dist/server.js"]
