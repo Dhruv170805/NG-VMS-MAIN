@@ -140,13 +140,32 @@ export class SystemService {
         if (result.data?.features) features = result.data.features as any;
       }
       
+      let extraConfig = {};
+      if (licenseValid) {
+        const [hosts, purposeSetting, guardConfigSetting, passRulesSetting, emergencyContactSetting] = await Promise.all([
+          Employee.find({ isHost: true, tenantId }).select('name department email phone'),
+          Setting.findOne({ key: 'allowed_purposes', tenantId }),
+          Setting.findOne({ key: 'guard_config', tenantId }),
+          Setting.findOne({ key: 'pass_rules', tenantId }),
+          Setting.findOne({ key: 'emergency_contact', tenantId })
+        ]);
+        extraConfig = {
+          purposes: purposeSetting ? purposeSetting.value : ['Meeting', 'Internship', 'Training', 'Personal', 'Other'],
+          hosts: hosts.map(h => ({ _id: h._id, name: h.name, department: h.department, email: h.email, phone: h.phone })),
+          guard_config: guardConfigSetting ? guardConfigSetting.value : { autoScan: false, folderName: '', requireAadhaar: false, printMode: 'DIGITAL_ONLY' },
+          pass_rules: passRulesSetting ? passRulesSetting.value : [],
+          emergency_contact: emergencyContactSetting ? emergencyContactSetting.value : 'Contact Command Center at ext. 911 or +91 12345 67890 immediately.'
+        };
+      }
+      
       return {
         name: tenant.name,
         logoUrl: tenant.logoUrl || null,
         subdomain: tenant.subdomain,
         features,
         licenseValid,
-        licenseReason
+        licenseReason,
+        ...extraConfig
       };
     } catch (error: any) {
       console.error('[SYSTEM SERVICE] getTenantConfig error:', error);

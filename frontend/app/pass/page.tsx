@@ -26,7 +26,8 @@ const DigitalPass: React.FC = () => {
   const { tenant, getTenantId } = useTenant();
   const visitorId = searchParams.get('id') || '';
   const isPrintView = searchParams.get('print') === 'true';
-  const printMode = searchParams.get('mode') || 'HARD_PRINT_BOTH';
+  const [guardConfig, setGuardConfig] = useState<any>(null);
+  const activePrintMode = searchParams.get('mode') || guardConfig?.printMode || 'HARD_PRINT_BOTH';
   
   const [status, setStatus] = useState<string>('PENDING');
   const [visitor, setVisitor] = useState<any>(null);
@@ -49,7 +50,10 @@ const DigitalPass: React.FC = () => {
   }, []);
 
   const isStaff = user && (['ADMIN', 'SUPER_ADMIN', 'HOST', 'RECEPTIONIST', 'GUARD', 'MANAGER', 'STAFF'].includes(user.role));
-  const canPrintPass = user && (['ADMIN', 'SUPER_ADMIN', 'GUARD'].includes(user.role)) && (['APPROVED', 'GATE_IN', 'MEET_IN', 'MEET_OUT', 'GATE_OUT'].includes(status));
+  const canPrintPass = user && 
+    (activePrintMode !== 'DIGITAL_ONLY') && 
+    (['ADMIN', 'SUPER_ADMIN', 'GUARD'].includes(user.role)) && 
+    (['APPROVED', 'GATE_IN', 'MEET_IN', 'MEET_OUT', 'GATE_OUT'].includes(status));
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -71,6 +75,7 @@ const DigitalPass: React.FC = () => {
         const data = await res.json();
         if (data.pass_rules) setAdminRules(data.pass_rules);
         if (data.emergency_contact) setEmergencyContact(data.emergency_contact);
+        if (data.guard_config) setGuardConfig(data.guard_config);
       } catch (err) {
         console.error('Failed to fetch pass rules:', err);
       }
@@ -232,7 +237,7 @@ const DigitalPass: React.FC = () => {
                  <div style={{ color: '#fff', fontSize: '10px', fontWeight: 700, letterSpacing: '1px', opacity: 0.8 }}>Visitor pass</div>
                </div>
 
-               {printMode === 'QR_VID_ONLY' ? (
+               {activePrintMode === 'QR_VID_ONLY' ? (
                  <div className={styles.card_main} style={{ justifyContent: 'center', alignItems: 'center', flexDirection: 'column', gap: '20px', padding: '40px' }}>
                     <div className={styles.v_qr_studio} style={{ width: '120px', height: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                        <QRCodeSVG value={visitorId} size={110} level="H" />
@@ -271,7 +276,7 @@ const DigitalPass: React.FC = () => {
                  </div>
                )}
                
-               {printMode !== 'QR_VID_ONLY' && (
+               {activePrintMode !== 'QR_VID_ONLY' && (
                  <div className={styles.pass_timeline}>
                    {['PENDING_GUARD', 'SENT_FOR_APPROVAL', 'APPROVED', 'GATE_IN', 'GATE_OUT'].map(step => (
                       <div key={step} className={`${styles.timeline_step} ${getStepClass(step)}`}>
