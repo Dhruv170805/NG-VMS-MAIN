@@ -4,6 +4,7 @@ FROM node:22-bookworm-slim AS deps
 WORKDIR /app
 
 # Native build deps for canvas + sharp
+ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update --fix-missing && \
     apt-get install -y --fix-missing --no-install-recommends \
       python3 make g++ \
@@ -32,6 +33,7 @@ FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
 
 # Runtime native libs only (no build tools)
+ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update --fix-missing && \
     apt-get install -y --fix-missing --no-install-recommends \
       libcairo2 libpango-1.0-0 libjpeg62-turbo libgif7 librsvg2-2 \
@@ -41,8 +43,8 @@ RUN apt-get update --fix-missing && \
     apt-get clean
 
 # Non-root user
-RUN groupadd --system --gid 1001 nodejs && \
-    useradd --system --uid 1001 --gid nodejs --shell /bin/false ngvms
+RUN groupadd --gid 1001 nodejs && \
+    useradd --uid 1001 --gid nodejs --shell /bin/false ngvms
 
 # Copy built artifacts + production node_modules only
 COPY --from=builder --chown=ngvms:nodejs /app/dist ./dist
