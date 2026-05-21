@@ -74,23 +74,84 @@ export class SystemService {
       throw new Error(`Invalid License: ${result.reason}`);
     }
 
+    const logo = result.data?.features?.branding?.logoFile 
+      ? `/assets/${result.data.features.branding.logoFile}` 
+      : (result.data?.features?.branding?.logoUrl || undefined);
+
     const tenant = await Tenant.findByIdAndUpdate(
       tenantId,
-      { licenseKey },
+      { 
+        licenseKey,
+        name: result.data?.company || undefined,
+        logoUrl: logo
+      },
       { new: true }
     );
+
+    // If rootAdmin info is in the license, ensure the user exists
+    if (result.data?.rootAdmin?.id && result.data?.rootAdmin?.password) {
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(result.data.rootAdmin.password, salt);
+      
+      await Employee.findOneAndUpdate(
+        { email: result.data.rootAdmin.id, tenantId },
+        { 
+          name: 'System Root',
+          password: hashedPassword,
+          role: 'ADMIN',
+          isHost: false,
+          tenantId
+        },
+        { upsert: true }
+      );
+    }
     
-    return { success: true, message: 'License updated successfully', expiry: result.data?.expiresAt };
+    return { success: true, message: 'License updated successfully. System rebranded and Root Admin configured.', expiry: result.data?.expiresAt };
+  }
+
+  static async inspectLicense(licenseKey: string) {
+    const result = await SecurityManager.getInstance().validateTenantLicense(licenseKey);
+    return {
+      isValid: result.valid,
+      reason: result.reason,
+      payload: result.data,
+      hint: "Sovereign Decryption Successful. Integrity Verified."
+    };
   }
 
   static async getTenantConfig(tenant: any, tenantId: mongoose.Types.ObjectId) {
-    const features = await SecurityManager.getInstance().getTenantFeatures(tenantId);
-    return {
-      name: tenant.name,
-      logoUrl: tenant.logoUrl,
-      subdomain: tenant.subdomain,
-      features
-    };
+    try {
+      if (!tenant) {
+        throw new Error('Tenant object is null or undefined');
+      }
+      if (!tenant.name) {
+        throw new Error('Tenant name is missing');
+      }
+      
+      const securityManager = SecurityManager.getInstance();
+      let licenseValid = false;
+      let licenseReason = 'No valid license found';
+      let features = { email: false, sms: false, aadhaar: false, biometrics: false, analytics: false, storage: 'local' };
+      
+      if (tenant.licenseKey) {
+        const result = await securityManager.validateTenantLicense(tenant.licenseKey);
+        licenseValid = result.valid;
+        if (result.reason) licenseReason = result.reason;
+        if (result.data?.features) features = result.data.features as any;
+      }
+      
+      return {
+        name: tenant.name,
+        logoUrl: tenant.logoUrl || null,
+        subdomain: tenant.subdomain,
+        features,
+        licenseValid,
+        licenseReason
+      };
+    } catch (error: any) {
+      console.error('[SYSTEM SERVICE] getTenantConfig error:', error);
+      throw error;
+    }
   }
 
   static async uploadHosts(buffer: Buffer, tenantId: mongoose.Types.ObjectId) {

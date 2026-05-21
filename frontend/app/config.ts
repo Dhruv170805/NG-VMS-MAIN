@@ -2,8 +2,12 @@
  * AETHER Sovereign Config
  * Standardized for Vercel (Frontend) + Render (Backend)
  */
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5001';
+const isBrowser = typeof window !== 'undefined';
+
+// Use explicit env variables if defined, otherwise derive dynamically from the browser's origin.
+// This enables seamless reverse-proxy deployments (Caddy, IIS, Nginx) without hardcoding domains.
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowser ? `${window.location.origin}/api` : 'http://localhost:5001/api');
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || (isBrowser ? window.location.origin : 'http://localhost:5001');
 
 export const API_CONFIG = {
   BASE_URL: API_BASE_URL,

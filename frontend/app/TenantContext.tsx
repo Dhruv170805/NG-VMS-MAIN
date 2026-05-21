@@ -12,6 +12,8 @@ interface TenantConfig {
     sms: boolean;
     aadhaar: boolean;
   };
+  licenseValid?: boolean;
+  licenseReason?: string;
 }
 
 interface TenantContextType {

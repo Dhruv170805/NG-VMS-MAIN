@@ -1,0 +1,93 @@
+'use client';
+
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { API_CONFIG } from './config';
+
+interface TenantConfig {
+  name: string;
+  logoUrl?: string;
+  subdomain: string;
+  features: {
+    email: boolean;
+    sms: boolean;
+    aadhaar: boolean;
+  };
+}
+
+interface TenantContextType {
+  tenant: TenantConfig | null;
+  loading: boolean;
+  error: string | null;
+  getTenantId: () => string;
+}
+
+const TenantContext = createContext<TenantContextType | undefined>(undefined);
+
+export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [tenant, setTenant] = useState<TenantConfig | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const getSubdomain = React.useCallback(() => {
+    if (typeof window === 'undefined') return 'demo';
+    const hostname = window.location.hostname;
+
+    // Ignore hosting provider domains and use demo tenant
+    if (hostname.includes('.onrender.com') || hostname.includes('.vercel.app')) {
+      return 'demo';
+    }
+
+    const parts = hostname.split('.');
+
+    // Check for custom multi-tenant subdomains
+    if (parts.length > 2) {
+      return parts[0];
+    }
+
+    // Default to 'demo' for dev/localhost
+    return 'demo';
+  }, []);
+
+  const fetchTenantConfig = React.useCallback(async () => {
+    const subdomain = getSubdomain();
+    try {
+      const res = await fetch(`${API_CONFIG.ENDPOINTS.SYSTEM}/config`, {
+        headers: {
+          'x-tenant-id': subdomain
+        }
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to load tenant configuration');
+      }
+
+      const data = await res.json();
+      setTenant(data);
+    } catch (err: any) {
+      console.error('[TENANT CONTEXT] Error:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [getSubdomain]);
+
+  useEffect(() => {
+    fetchTenantConfig();
+  }, [fetchTenantConfig]);
+
+  const getTenantId = React.useCallback(() => getSubdomain(), [getSubdomain]);
+
+  return (
+    <TenantContext.Provider value={{ tenant, loading, error, getTenantId }}>
+      {children}
+    </TenantContext.Provider>
+  );
+};
+
+export const useTenant = () => {
+  const context = useContext(TenantContext);
+  if (context === undefined) {
+    throw new Error('useTenant must be used within a TenantProvider');
+  }
+  return context;
+};

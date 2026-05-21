@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import Tenant from '../models/Tenant';
 import mongoose from 'mongoose';
 import { TenantRequest } from '../types/requests';
+import { SecurityManager } from '../utils/securityManager';
 
 export const tenantMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   if (req.method === 'OPTIONS') {
@@ -9,7 +10,11 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
   }
 
   // Exempt routes that don't require a tenant context (e.g., bootstrap and health checks)
-  const exemptRoutes = ['/api/bootstrap', '/api/system/health', '/api/system/version', '/bootstrap', '/system/health', '/system/version'];
+  // We also exempt the license update route so a locked system can still be unlocked
+  const exemptRoutes = [
+    '/api/bootstrap', '/api/system/health', '/api/system/version', '/api/system/config', '/api/system/license',
+    '/bootstrap', '/system/health', '/system/version', '/system/config', '/system/license'
+  ];
   if (exemptRoutes.some(route => req.originalUrl.startsWith(route))) {
     const subdomain = req.headers['x-tenant-id'] as string;
     if (subdomain) {
@@ -38,6 +43,21 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
 
     if (!tenant) {
       return res.status(404).json({ error: 'Tenant not found' });
+    }
+
+    // License Validation Check
+    // We must allow auth routes to bypass the strict license lock so admins can log in to update the license.
+    if (!req.originalUrl.startsWith('/api/auth') && !req.originalUrl.startsWith('/auth')) {
+      if (!tenant.licenseKey) {
+        return res.status(403).json({ error: 'System locked: No valid license found.' });
+      }
+      
+      const securityManager = SecurityManager.getInstance();
+      const licenseCheck = await securityManager.validateTenantLicense(tenant.licenseKey);
+      
+      if (!licenseCheck.valid) {
+        return res.status(403).json({ error: `System locked: ${licenseCheck.reason}` });
+      }
     }
 
     const tenantReq = req as TenantRequest;

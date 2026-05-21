@@ -212,7 +212,7 @@ io.on('connection', (socket) => {
 
 // API Routes
 app.get('/', (_req, res) =>
-  res.status(200).send('NG-VMS API Server is running. Access the frontend at http://localhost:3000')
+  res.status(200).send(`NG-VMS API Server is running. Access the frontend at ${baseFrontendUrl}`)
 );
 app.use('/api/auth', authRoutes);
 app.use('/api/visitors', visitorRoutes);

@@ -19,7 +19,7 @@ import { useTenant } from '../TenantContext';
 import styles from './admin.module.css';
 
 const AdminDashboard: React.FC = () => {
-  const { tenant } = useTenant();
+  const { tenant, getTenantId } = useTenant();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const {
     activeTab, setActiveTab,
@@ -34,6 +34,7 @@ const AdminDashboard: React.FC = () => {
     purposesText, setPurposesText,
     passRulesText, setPassRulesText,
     guardConfig, setGuardConfig,
+    licenseInfo, handleUpdateLicense,
     loading, exportConfig, setExportConfig,
     file, setFile,
     uploadStatus, searchQuery, setSearchQuery,
@@ -295,6 +296,8 @@ const AdminDashboard: React.FC = () => {
                 purposesText={purposesText}
                 passRulesText={passRulesText}
                 guardConfig={guardConfig}
+                licenseInfo={licenseInfo}
+                onUpdateLicense={handleUpdateLicense}
                 uploadStatus={uploadStatus}
                 onSetSmtpConfig={setSmtpConfig}
                 onSetPurposesText={setPurposesText}
@@ -308,6 +311,7 @@ const AdminDashboard: React.FC = () => {
                 emergencyContact={emergencyContact}
                 onSetEmergencyContact={setEmergencyContact}
                 onSaveEmergencyContact={saveEmergencyContact}
+                getTenantId={getTenantId}
               />
             )}
           </AnimatePresence>

@@ -25,7 +25,7 @@ services:
       - mongo
       - minio
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:5001/health" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -47,6 +47,8 @@ services:
         - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/api}
         - NEXT_PUBLIC_SOCKET_URL=${NEXT_PUBLIC_SOCKET_URL:-/}
     container_name: ngvms_frontend
+    ports:
+      - "3000:3000"
     environment:
       - NODE_ENV=production
     depends_on:
@@ -76,14 +78,9 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER:-admin}
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:-NGVmsEnterpriseDB2026!}
     command: >
-      bash -c "
-      cp /data/mongo/mongo.key /tmp/mongo.key &&
-      chmod 400 /tmp/mongo.key &&
-      chown 999:999 /tmp/mongo.key &&
-      exec mongod --replSet rs0 --bind_ip_all --quiet --auth --keyFile /tmp/mongo.key
-      "
+      bash -c " cp /data/mongo/mongo.key /tmp/mongo.key && chmod 400 /tmp/mongo.key && chown 999:999 /tmp/mongo.key && exec mongod --replSet rs0 --bind_ip_all --quiet --auth --keyFile /tmp/mongo.key "
     healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      test: [ "CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -107,11 +104,7 @@ services:
     networks:
       - ngvms_network
     command: >
-      bash -c "
-      echo 'Waiting for MongoDB to start...';
-      sleep 10;
-      mongosh --host mongo:27017 -u \"$${MONGO_ROOT_USER:-admin}\" -p \"$${MONGO_ROOT_PASSWORD:-NGVmsEnterpriseDB2026!}\" --authenticationDatabase admin --quiet --eval \"try { rs.status() } catch (err) { rs.initiate({_id:'rs0',members:[{_id:0,host:'mongo:27017'}]}) }\"
-      "
+      bash -c " echo 'Waiting for MongoDB to start...'; sleep 10; mongosh --host mongo:27017 -u \"$${MONGO_ROOT_USER:-admin}\" -p \"$${MONGO_ROOT_PASSWORD:-NGVmsEnterpriseDB2026!}\" --authenticationDatabase admin --quiet --eval \"try { rs.status() } catch (err) { rs.initiate({_id:'rs0',members:[{_id:0,host:'mongo:27017'}]}) }\" "
 
   minio:
     image: minio/minio
@@ -123,7 +116,7 @@ services:
       - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-EnterpriseMinioPass2026!}
     command: server /data --console-address ":9001"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -146,8 +139,8 @@ services:
     image: caddy:2-alpine
     container_name: ngvms_proxy
     ports:
-      - "80:80"
-      - "443:443"
+      - "9000:80"
+      - "9443:443"
     environment:
       - DOMAIN_NAME=${DOMAIN_NAME:-localhost}
       - TLS_EMAIL=${TLS_EMAIL:-admin@localhost}

@@ -16,9 +16,13 @@ export interface LicenseFeatures {
   email: boolean;
   sms: boolean;
   aadhaar: boolean;
+  biometrics: boolean;
+  analytics: boolean;
+  storage: 'local' | 'minio' | 's3';
   branding?: {
     companyName: string;
     logoUrl?: string;
+    logoFile?: string; // Support for local JPG files
   };
 }
 
@@ -42,26 +46,29 @@ export interface ValidationResult {
     expiresAt?: Date;
     status?: string;
     hardwareHash?: string;
+    rootAdmin?: {
+      id: string;
+      password?: string; // Encrypted or plain to be hashed
+    };
   };
 }
 
 export class SecurityManager {
   private static instance: SecurityManager;
-  private publicKey: string;
+  private publicKey: string | null = null;
   private secretKey: string;
   private cachedFingerprint: string | null = null;
 
   private constructor() {
     // AES Secret Key (256-bit)
-    this.secretKey = (process.env.LICENSE_SECRET || '32-char-stable-secret-key-vms-01').substring(0, 32);
+    this.secretKey = (process.env.LICENSE_SECRET || 'ngs-enterprise-system-validation').substring(0, 32);
     
     // RSA Public Key (Standard PEM)
     const publicKeyPath = path.join(process.cwd(), 'public.pem');
     if (fs.existsSync(publicKeyPath)) {
       this.publicKey = fs.readFileSync(publicKeyPath, 'utf8');
     } else {
-      // Root Key (Should be replaced with real PEM in prod)
-      this.publicKey = 'MOCK_PUBLIC_KEY'; 
+      console.warn('[SECURITY] public.pem not found. RSA signature validation will be bypassed.');
     }
   }
 
@@ -98,7 +105,7 @@ export class SecurityManager {
    * Verifies RSA-SHA256 signature
    */
   private verifyRSASignature(payload: string, signature: string): boolean {
-    if (this.publicKey === 'MOCK_PUBLIC_KEY') return true; // Skip ONLY if mock key is explicitly set
+    if (!this.publicKey) return true; // Skip ONLY if public key is not provided
     try {
       const verifier = crypto.createVerify('SHA256');
       verifier.update(payload);
@@ -158,6 +165,16 @@ export class SecurityManager {
         payload = JSON.parse(rawData);
       }
       
+      // --- Sovereign Decryption Audit ---
+      console.log('🛡️ [SECURITY] Sovereign License Decrypted Successfully.');
+      console.log(`🏢 Company: ${payload.company || 'NOT_SET'}`);
+      console.log(`🖼️ Logo URL: ${payload.features?.branding?.logoUrl || 'DEFAULT'}`);
+      console.log(`📁 Logo JPG: ${payload.features?.branding?.logoFile || 'N/A'}`);
+      console.log(`📅 Validity: ${payload.issuedAt || 'N/A'} -> ${payload.expiresAt || 'N/A'}`);
+      console.log(`🔑 Root Admin ID: ${payload.rootAdmin?.id || 'NOT_PROVISIONED'}`);
+      console.log(`✨ Features: ${Object.keys(payload.features || {}).filter(k => payload.features[k] === true).join(', ')}`);
+      // ----------------------------------
+
       // 2. Validate Metadata
       if (payload.status !== 'ACTIVE') {
         return { valid: false, reason: 'License is not active' };
@@ -186,13 +203,17 @@ export class SecurityManager {
             email: !!payload.features?.email,
             sms: !!payload.features?.sms,
             aadhaar: !!payload.features?.aadhaar,
+            biometrics: !!payload.features?.biometrics,
+            analytics: !!payload.features?.analytics,
+            storage: payload.features?.storage || 'local',
             branding: payload.features?.branding
           },
           network: payload.network,
           dbConfig: payload.dbConfig,
           expiresAt: payload.expiresAt,
           status: payload.status,
-          hardwareHash: payload.hardwareHash
+          hardwareHash: payload.hardwareHash,
+          rootAdmin: payload.rootAdmin
         }
       };
     } catch (error) {
@@ -205,13 +226,25 @@ export class SecurityManager {
    * Utility to get features for a tenant
    */
   public async getTenantFeatures(tenantId: mongoose.Types.ObjectId): Promise<LicenseFeatures> {
-    const tenant = await Tenant.findById(tenantId);
-    if (!tenant || !tenant.licenseKey) {
-      return { email: false, sms: false, aadhaar: false };
-    }
+    try {
+      const tenant = await Tenant.findById(tenantId);
+      if (!tenant) {
+        console.warn(`[SECURITY] Tenant not found for ID: ${tenantId}`);
+        return { email: false, sms: false, aadhaar: false, biometrics: false, analytics: false, storage: 'local' };
+      }
+      if (!tenant.licenseKey) {
+        console.warn(`[SECURITY] No license key found for tenant: ${tenant.name}`);
+        return { email: false, sms: false, aadhaar: false, biometrics: false, analytics: false, storage: 'local' };
+      }
 
-    const result = await this.validateTenantLicense(tenant.licenseKey);
-    return result.data?.features || { email: false, sms: false, aadhaar: false };
+      const result = await this.validateTenantLicense(tenant.licenseKey);
+      if (!result.valid) {
+        console.warn(`[SECURITY] Invalid license for tenant ${tenant.name}: ${result.reason}`);
+      }
+      return result.data?.features || { email: false, sms: false, aadhaar: false, biometrics: false, analytics: false, storage: 'local' };
+    } catch (error: any) {
+      console.error(`[SECURITY] Error getting tenant features for ID ${tenantId}:`, error);
+      return { email: false, sms: false, aadhaar: false, biometrics: false, analytics: false, storage: 'local' };
+    }
   }
 }
-

@@ -84,13 +84,16 @@ export const useAdminDashboard = () => {
     requireAadhaar: false
   });
   
+  const [licenseInfo, setLicenseInfo] = useState<{ isValid: boolean; reason?: string; details?: any } | null>(null);
+
   const [loading, setLoading] = useState<Record<string, boolean>>({
     visitors: true,
     staff: false,
     analytics: false,
     settings: false,
     blacklist: false,
-    reports: false
+    reports: false,
+    license: false
   });
 
   const [showExportModal, setShowExportModal] = useState(false);
@@ -361,6 +364,60 @@ export const useAdminDashboard = () => {
     }
   }, [getTenantId]);
 
+  const fetchLicense = useCallback(async (signal?: AbortSignal) => {
+    setLoading(prev => ({ ...prev, license: true }));
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_CONFIG.ENDPOINTS.SYSTEM}/license`, {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'x-tenant-id': getTenantId()
+        },
+        credentials: 'include',
+        signal
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLicenseInfo(data);
+      }
+    } catch (err: any) {
+      if (err.name !== 'AbortError') console.error('Failed to fetch license', err);
+    } finally {
+      setLoading(prev => ({ ...prev, license: false }));
+    }
+  }, [getTenantId]);
+
+  const handleUpdateLicense = async (licenseKey: string) => {
+    setLoading(prev => ({ ...prev, license: true }));
+    setUploadStatus({ message: 'Validating & Updating License...', type: 'info' });
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_CONFIG.ENDPOINTS.SYSTEM}/license`, {
+        method: 'PATCH',
+        headers: { 
+          'Authorization': `Bearer ${token}`, 
+          'Content-Type': 'application/json',
+          'x-tenant-id': getTenantId()
+        },
+        credentials: 'include',
+        body: JSON.stringify({ licenseKey })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUploadStatus({ message: 'Sovereign License Updated Successfully.', type: 'success' });
+        fetchLicense();
+        // Refresh page to apply feature changes
+        setTimeout(() => window.location.reload(), 2000);
+      } else {
+        setUploadStatus({ message: `Activation Failed: ${data.message}`, type: 'error' });
+      }
+    } catch (err) {
+      setUploadStatus({ message: 'Failed to connect to Activation Server.', type: 'error' });
+    } finally {
+      setLoading(prev => ({ ...prev, license: false }));
+    }
+  };
+
   // --- Effects ---
   useEffect(() => {
     const controller = new AbortController();
@@ -368,9 +425,12 @@ export const useAdminDashboard = () => {
     if (activeTab === 'analytics') fetchAnalytics(controller.signal);
     if (activeTab === 'staff') fetchUsers(controller.signal);
     if (activeTab === 'blacklist') fetchBlacklist(controller.signal);
-    if (activeTab === 'settings') fetchSettings(controller.signal);
+    if (activeTab === 'settings') {
+      fetchSettings(controller.signal);
+      fetchLicense(controller.signal);
+    }
     return () => controller.abort();
-  }, [activeTab, fetchVisitors, fetchAnalytics, fetchUsers, fetchBlacklist, fetchSettings]);
+  }, [activeTab, fetchVisitors, fetchAnalytics, fetchUsers, fetchBlacklist, fetchSettings, fetchLicense]);
 
   useEffect(() => {
     if (activeTab !== 'overview') return;
@@ -737,6 +797,7 @@ export const useAdminDashboard = () => {
     purposesText, setPurposesText,
     passRulesText, setPassRulesText,
     guardConfig, setGuardConfig,
+    licenseInfo, handleUpdateLicense,
     loading, showExportModal, setShowExportModal,
     exportConfig, setExportConfig,
     file, setFile,

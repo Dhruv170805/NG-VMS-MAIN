@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { SmtpConfig, GuardConfig } from './types';
 import styles from '../../app/admin/admin.module.css';
+import { API_CONFIG } from '../../app/config';
 
 interface Props {
   tenant: any;
@@ -15,6 +16,8 @@ interface Props {
   purposesText: string;
   passRulesText: string;
   guardConfig: GuardConfig;
+  licenseInfo: { isValid: boolean; reason?: string; details?: any } | null;
+  onUpdateLicense: (key: string) => void;
   uploadStatus: { message: string; type: string };
   onSetSmtpConfig: (cfg: SmtpConfig) => void;
   onSetPurposesText: (t: string) => void;
@@ -28,6 +31,7 @@ interface Props {
   emergencyContact: string;
   onSetEmergencyContact: (t: string) => void;
   onSaveEmergencyContact: () => void;
+  getTenantId?: () => string;
 }
 
 export const SettingsTab: React.FC<Props> = ({
@@ -37,6 +41,8 @@ export const SettingsTab: React.FC<Props> = ({
   purposesText,
   passRulesText,
   guardConfig,
+  licenseInfo,
+  onUpdateLicense,
   uploadStatus,
   onSetSmtpConfig,
   onSetPurposesText,
@@ -50,8 +56,12 @@ export const SettingsTab: React.FC<Props> = ({
   emergencyContact,
   onSetEmergencyContact,
   onSaveEmergencyContact,
+  getTenantId,
 }) => {
   const features = tenant?.features || { email: false, sms: false, aadhaar: false };
+  const [licenseKeyInput, setLicenseKeyInput] = React.useState('');
+  const [showInspector, setShowInspector] = React.useState(false);
+  const [inspectData, setInspectData] = React.useState<any>(null);
 
   return (
     <motion.div
@@ -62,6 +72,171 @@ export const SettingsTab: React.FC<Props> = ({
       className={styles.settings_view}
     >
       <div className={styles.system_presets_grid}>
+      {/* Sovereign License Activation */}
+      <div className="glass-card" style={{ padding: '30px', gridColumn: 'span 2', border: '1px solid rgba(0,122,255,0.2)', background: 'linear-gradient(135deg, rgba(0,122,255,0.05) 0%, rgba(255,255,255,0.05) 100%)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <div className={styles.preset_icon} style={{ background: 'rgba(0,122,255,0.1)' }}>
+              <Shield size={20} color="var(--apple-blue)" />
+            </div>
+            <div>
+              <h3 style={{ margin: 0 }}>Sovereign License Perimeter</h3>
+              <p className={styles.config_desc} style={{ margin: '4px 0 0 0' }}>Manage enterprise activation and machine-locked security.</p>
+            </div>
+          </div>
+          {licenseInfo?.isValid ? (
+            <div className={styles.status_pill_active} style={{ background: 'rgba(40,205,65,0.1)', color: 'var(--apple-green)', border: '1px solid rgba(40,205,65,0.2)' }}>
+               ROOT ACTIVATED
+            </div>
+          ) : (
+            <div className={styles.status_pill_active} style={{ background: 'rgba(255,59,48,0.1)', color: 'var(--apple-red)', border: '1px solid rgba(255,59,48,0.2)' }}>
+               UNLICENSED
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '30px' }}>
+          <div>
+             <div className={styles.input_group_stacked}>
+                <label>Activation Key (AES-256 Encrypted)</label>
+                <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                  <textarea 
+                    className="glass-input" 
+                    style={{ flex: 1, minHeight: '80px', resize: 'none', fontFamily: 'monospace', fontSize: '0.75rem' }}
+                    placeholder="Paste your .vlic or .lic encrypted string here..."
+                    value={licenseKeyInput}
+                    onChange={(e) => setLicenseKeyInput(e.target.value)}
+                  />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <label className="glass-btn secondary small" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', height: '100%', justifyContent: 'center', padding: '0 15px' }}>
+                      <FolderOpen size={16} />
+                      LOAD .VLIC
+                      <input 
+                        type="file" 
+                        accept=".vlic,.lic" 
+                        style={{ display: 'none' }} 
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                              const content = event.target?.result as string;
+                              setLicenseKeyInput(content.trim());
+                            };
+                            reader.readAsText(file);
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+                </div>
+             </div>
+             <div style={{ display: 'flex', gap: '12px' }}>
+                <button 
+                  className="glass-btn primary small" 
+                  style={{ flex: 1 }}
+                  onClick={() => onUpdateLicense(licenseKeyInput)}
+                >
+                  Activate License
+                </button>
+                <button 
+                  className="glass-btn secondary small"
+                  onClick={() => setShowInspector(!showInspector)}
+                >
+                  {showInspector ? 'Hide Inspector' : 'Inspect Payload'}
+                </button>
+             </div>
+          </div>
+
+          <div className={styles.license_details_pane} style={{ background: 'rgba(0,0,0,0.02)', padding: '20px', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.05)' }}>
+             <h4 style={{ fontSize: '0.8rem', color: 'var(--apple-gray)', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '1px' }}>Current License Details</h4>
+             {licenseInfo?.details ? (
+               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--apple-gray)' }}>Company:</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{licenseInfo.details.company || 'N/A'}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--apple-gray)' }}>Project:</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{licenseInfo.details.project || 'N/A'}</span>
+                  </div>
+                  {licenseInfo.details.features?.branding?.logoFile && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--apple-gray)' }}>Logo File:</span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--apple-green)' }}>{licenseInfo.details.features.branding.logoFile}</span>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--apple-gray)' }}>Expires:</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: new Date(licenseInfo.details.expiresAt) < new Date() ? 'var(--apple-red)' : 'inherit' }}>
+                      {new Date(licenseInfo.details.expiresAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  {licenseInfo.details.rootAdmin?.id && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--apple-gray)' }}>Root ID:</span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--apple-blue)' }}>{licenseInfo.details.rootAdmin.id}</span>
+                    </div>
+                  )}
+                  <div style={{ height: '1px', background: 'rgba(0,0,0,0.05)', margin: '4px 0' }} />
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                     {licenseInfo.details.features?.aadhaar && <span className={styles.feature_tag}>AADHAAR</span>}
+                     {licenseInfo.details.features?.email && <span className={styles.feature_tag}>EMAIL</span>}
+                     {licenseInfo.details.features?.sms && <span className={styles.feature_tag}>SMS</span>}
+                     {licenseInfo.details.features?.branding && <span className={styles.feature_tag}>WHITE_LABEL</span>}
+                  </div>
+               </div>
+             ) : (
+               <p style={{ fontSize: '0.75rem', color: 'var(--apple-gray)', textAlign: 'center', margin: '20px 0' }}>No active license found.</p>
+             )}
+          </div>
+        </div>
+
+        <AnimatePresence>
+          {showInspector && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              style={{ overflow: 'hidden', marginTop: '20px' }}
+            >
+              <div style={{ background: '#1c1c1e', color: '#32d74b', padding: '20px', borderRadius: '12px', fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <span style={{ color: '#0a84ff' }}>// Sovereign License Decryption Inspector</span>
+                  <button 
+                    style={{ background: 'transparent', border: 'none', color: '#636366', cursor: 'pointer' }}
+                    onClick={async () => {
+                      if (!licenseKeyInput) return;
+                      try {
+                        const token = localStorage.getItem('token');
+                        const res = await fetch(`${API_CONFIG.ENDPOINTS.SYSTEM}/license/inspect`, {
+                          method: 'POST',
+                          headers: { 
+                            'Authorization': `Bearer ${token}`, 
+                            'Content-Type': 'application/json',
+                            'x-tenant-id': getTenantId ? getTenantId() : (tenant?.subdomain || '')
+                          },
+                          body: JSON.stringify({ licenseKey: licenseKeyInput })
+                        });
+                        const data = await res.json();
+                        setInspectData(data);
+                      } catch (err) {
+                        setInspectData({ error: 'Decryption sequence failed.' });
+                      }
+                    }}
+                  >
+                    RUN_DECRYPT_SYMLINK
+                  </button>
+                </div>
+                <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+                  {inspectData ? JSON.stringify(inspectData, null, 2) : '// Paste key and click RUN to decrypt...'}
+                </pre>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
       {/* SMTP Config */}
       {features.email && (
         <div className="glass-card" style={{ padding: '30px' }}>

@@ -44,12 +44,21 @@ services:
   mongo:
     image: mongo:6
     container_name: ngvms_mongo
-    command: ["--replSet", "rs0", "--bind_ip_all", "--auth"]
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        cp /data/configdb/mongo.key /tmp/mongo.key
+        chmod 400 /tmp/mongo.key
+        chown 999:999 /tmp/mongo.key
+        exec mongod --replSet rs0 --bind_ip_all --auth --keyFile /tmp/mongo.key
     restart: unless-stopped
     networks: [ngvms_network]
     volumes:
       - mongo_data:/data/db
+      - ./data/mongo/mongo.key:/data/configdb/mongo.key
     environment:
+      # Auth re-enabled
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
 

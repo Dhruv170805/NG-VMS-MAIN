@@ -44,13 +44,33 @@ export const updateLicense: RequestHandler = async (req: Request, res: Response)
   }
 };
 
+export const inspectLicense: RequestHandler = async (req: Request, res: Response) => {
+  const { licenseKey } = req.body;
+  try {
+    if (!licenseKey) return res.status(400).json({ success: false, message: 'License key is required' });
+    const result = await SystemService.inspectLicense(licenseKey);
+    res.json(result);
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
 export const getTenantConfig: RequestHandler = async (req, res) => {
   const { tenant, tenantId } = req as TenantRequest;
   try {
-    const config = await SystemService.getTenantConfig(tenant, tenantId!);
+    if (!tenant) {
+      console.error('[SYSTEM CONTROLLER] getTenantConfig: tenant is undefined');
+      return res.status(400).json({ success: false, message: 'Tenant not found. Please provide valid x-tenant-id header.' });
+    }
+    if (!tenantId) {
+      console.error('[SYSTEM CONTROLLER] getTenantConfig: tenantId is undefined');
+      return res.status(400).json({ success: false, message: 'Tenant ID is missing.' });
+    }
+    const config = await SystemService.getTenantConfig(tenant, tenantId);
     res.json(config);
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('[SYSTEM CONTROLLER] getTenantConfig error:', error);
+    res.status(500).json({ success: false, message: error.message || 'Failed to load tenant configuration' });
   }
 };
 
