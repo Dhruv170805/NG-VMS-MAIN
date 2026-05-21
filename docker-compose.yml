@@ -21,9 +21,12 @@ services:
       SMTP_HOST: ${SMTP_HOST:-smtp_relay}
       SMTP_PORT: ${SMTP_PORT:-1025}
     depends_on:
-      - redis
-      - mongo
-      - minio
+      redis:
+        condition: service_started
+      minio:
+        condition: service_healthy
+      mongo_setup:
+        condition: service_completed_successfully
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:5001/health" ]
       interval: 30s
@@ -82,10 +85,11 @@ services:
       - -c
       - cp /data/mongo/mongo.key /tmp/mongo.key && chmod 400 /tmp/mongo.key && chown 999:999 /tmp/mongo.key && exec mongod --replSet rs0 --bind_ip_all --quiet --auth --keyFile /tmp/mongo.key
     healthcheck:
-      test: [ "CMD", "mongosh", "-u", "${MONGO_ROOT_USER:-admin}", "-p", "${MONGO_ROOT_PASSWORD:-NGVmsEnterpriseDB2026!}", "--authenticationDatabase", "admin", "--quiet", "--eval", "db.adminCommand({ping:1})" ]
-      interval: 30s
+      test: ["CMD-SHELL", "mongosh -u admin -p 'NGVmsEnterpriseDB2026!' --authenticationDatabase admin --quiet --eval 'db.adminCommand({ping:1})' || exit 1"]
+      interval: 15s
       timeout: 10s
-      retries: 5
+      start_period: 30s
+      retries: 10
     restart: unless-stopped
     deploy:
       resources:
@@ -101,7 +105,8 @@ services:
     image: mongo:6
     container_name: ngvms_mongo_setup
     depends_on:
-      - mongo
+      mongo:
+        condition: service_healthy
     restart: "no"
     networks:
       - ngvms_network
