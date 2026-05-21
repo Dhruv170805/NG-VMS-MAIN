@@ -88,7 +88,12 @@ const AdminDashboard: React.FC = () => {
         className={`${styles.admin_sidebar} ${isMobileMenuOpen ? styles.mobile_open : ''}`}
       >
         <div className={styles.sidebar_top}>
-          <div className={styles.admin_brand}>NG-VMS</div>
+          <div className={styles.admin_brand} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {tenant?.logoUrl && (
+              <img src={tenant.logoUrl} alt={tenant.name} width={28} height={28} style={{ objectFit: 'contain' }} />
+            )}
+            <span>{tenant?.name || 'NG-VMS'}</span>
+          </div>
           <button className={styles.mobile_close} onClick={() => setIsMobileMenuOpen(false)}>
             <X size={24} />
           </button>

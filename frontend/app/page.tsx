@@ -368,10 +368,17 @@ const Home = () => {
           <TiltCard className={styles.glass_card_v2}>
             <div className={styles.login_section}>
               <header className={styles.login_header}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px' }}>
-                  <ShieldCheck size={28} color="var(--apple-blue)" />
-                  <span style={{ fontWeight: 900, color: 'var(--apple-blue)', fontSize: '0.75rem', letterSpacing: '2px' }}>PORTAL</span>
-                </div>
+                {tenant?.logoUrl ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <img src={tenant.logoUrl} alt={tenant.name} width={50} height={50} style={{ objectFit: 'contain' }} />
+                    <span style={{ fontWeight: 800, fontSize: '1.1rem', color: '#000' }}>{tenant.name}</span>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <ShieldCheck size={28} color="var(--apple-blue)" />
+                    <span style={{ fontWeight: 900, color: 'var(--apple-blue)', fontSize: '0.75rem', letterSpacing: '2px' }}>PORTAL</span>
+                  </div>
+                )}
                 <h2>Staff Login 🔐</h2>
                 <p style={{ opacity: 0.5, fontSize: '0.9rem' }}>Secure access for authorized teams.</p>
               </header>

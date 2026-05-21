@@ -654,10 +654,13 @@ export default function GuardTerminal() {
   return (
     <div className="guard_terminal">
       <header className={`terminal_nav glass_panel`}>
-        <div className="terminal_brand">
+        <div className="terminal_brand" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <button className="hamburger_btn_global" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
             <Menu size={24} />
           </button>
+          {tenant?.logoUrl && (
+            <img src={tenant.logoUrl} alt={tenant.name} width={28} height={28} style={{ objectFit: 'contain' }} />
+          )}
           <div className="status_pulse" />
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <span>{tenant?.name || 'VMS'} <strong>Security</strong></span>

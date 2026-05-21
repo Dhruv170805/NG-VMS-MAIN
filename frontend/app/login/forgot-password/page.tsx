@@ -3,9 +3,11 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { API_CONFIG } from '../../config';
+import { useTenant } from '../../TenantContext';
 import styles from '../login.module.css';
 
 const ForgotPassword = () => {
+  const { tenant } = useTenant();
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -47,7 +49,14 @@ const ForgotPassword = () => {
         style={{ background: 'rgba(255, 255, 255, 0.7)', backdropFilter: 'blur(40px)' }}
       >
         <header className={styles.login_header_v2}>
-          <div className={styles.brand_badge_login}>RECOVERY</div>
+          {tenant?.logoUrl ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+              <img src={tenant.logoUrl} alt={tenant.name} width={50} height={50} style={{ objectFit: 'contain' }} />
+              <span style={{ fontWeight: 800, fontSize: '1.1rem', color: '#000' }}>{tenant.name}</span>
+            </div>
+          ) : (
+            <div className={styles.brand_badge_login}>RECOVERY</div>
+          )}
           <h1 style={{ fontWeight: 800 }}>Forgot Password</h1>
           <p>Enter your email to receive a reset link.</p>
         </header>

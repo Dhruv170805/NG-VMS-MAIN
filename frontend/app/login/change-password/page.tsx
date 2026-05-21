@@ -3,9 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { API_CONFIG } from '../../config';
+import { useTenant } from '../../TenantContext';
 import styles from '../login.module.css';
 
 const ChangePassword = () => {
+  const { tenant } = useTenant();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -76,7 +78,14 @@ const ChangePassword = () => {
         animate={{ opacity: 1, scale: 1, y: 0 }}
       >
         <header className={styles.login_header_v2}>
-          <div className={styles.brand_badge_login}>SECURITY ACTION</div>
+          {tenant?.logoUrl ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+              <img src={tenant.logoUrl} alt={tenant.name} width={50} height={50} style={{ objectFit: 'contain' }} />
+              <span style={{ fontWeight: 800, fontSize: '1.1rem', color: '#000' }}>{tenant.name}</span>
+            </div>
+          ) : (
+            <div className={styles.brand_badge_login}>SECURITY ACTION</div>
+          )}
           <h1>Reset Password</h1>
           <p>You must change your password to continue.</p>
         </header>

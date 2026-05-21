@@ -89,10 +89,26 @@ foreach ($dir in $dirs) {
 
 # --- 3. LICENSE CHECK ---
 Write-Host "[3/6] Verifying License..." -ForegroundColor White
-if (!(Test-Path license.vlic)) {
-    Write-Host "[WARN] license.vlic NOT FOUND. System will start in restricted trial mode." -ForegroundColor Yellow
+$licFile = ""
+if (Test-Path "PE_01&VMS_NGS.lic") {
+    $licFile = "PE_01&VMS_NGS.lic"
+} elseif (Test-Path "license_NGS.lic") {
+    $licFile = "license_NGS.lic"
+} elseif (Test-Path "license.vlic") {
+    $licFile = "license.vlic"
+}
+
+if ($licFile -ne "") {
+    Write-Host "[OK] License file detected: $licFile" -ForegroundColor Green
+    if ($licFile -ne "license_NGS.lic") {
+        Copy-Item $licFile "license_NGS.lic" -Force
+        Write-Host "[INFO] Synchronized $licFile to license_NGS.lic for Docker Compose mount." -ForegroundColor Gray
+    }
 } else {
-    Write-Host "[OK] license.vlic detected." -ForegroundColor Green
+    Write-Host "[WARN] License file not found (tried PE_01&VMS_NGS.lic, license_NGS.lic, license.vlic)." -ForegroundColor Yellow
+    Write-Host "[WARN] System will start in restricted trial mode. Please place your license file in this directory." -ForegroundColor Yellow
+    # Create empty license_NGS.lic to prevent Docker compose volume mount error
+    New-Item -ItemType File -Path "license_NGS.lic" -Force | Out-Null
 }
 
 # --- 4. DEPLOYMENT ---

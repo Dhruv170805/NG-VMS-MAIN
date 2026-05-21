@@ -349,7 +349,12 @@ const VisitorRegistration: React.FC = () => {
         
         {/* CENTERED HEADER */}
         <div className="reg_header_center">
-          <div className="reg_brand_center">{tenant?.name || 'NG-VMS'}</div>
+          <div className="reg_brand_center" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+            {tenant?.logoUrl && (
+              <img src={tenant.logoUrl} alt={tenant.name} width={28} height={28} style={{ objectFit: 'contain' }} />
+            )}
+            <span>{tenant?.name || 'NG-VMS'}</span>
+          </div>
           <h1 className="reg_title_center">{greeting}!</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', marginTop: '12px', fontWeight: 600 }}>Welcome to Visitor Registration</p>
         </div>

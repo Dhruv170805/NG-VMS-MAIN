@@ -33,14 +33,16 @@ export const HostHeader: React.FC<HostHeaderProps> = ({
           <button className={styles.hamburger_btn} onClick={onMenuToggle}>
             <Menu size={24} />
           </button>
-          {tenant?.logoUrl ? (
-            <img src={tenant.logoUrl} alt={tenant.name} width={40} height={40} style={{ objectFit: 'contain' }} />
-          ) : (
-            <div className={styles.host_avatar}>{user?.name?.substring(0,2).toUpperCase() || '??'}</div>
+          {tenant?.logoUrl && (
+            <img src={tenant.logoUrl} alt={tenant.name} width={36} height={36} style={{ objectFit: 'contain' }} />
           )}
+          <div className={styles.host_avatar}>{user?.name?.substring(0,2).toUpperCase() || '??'}</div>
         </div>
         <div className={styles.host_meta}>
-          <h2>{user?.name || 'Loading...'}</h2>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>{user?.name || 'Loading...'}</span>
+            {tenant?.name && <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--apple-blue)', background: 'rgba(0,122,255,0.1)', padding: '2px 8px', borderRadius: '8px' }}>{tenant.name}</span>}
+          </h2>
           <p>💼 {user?.role || 'Staff'}</p>
           <p>🏢 {user?.department || 'Department'}</p>
         </div>
