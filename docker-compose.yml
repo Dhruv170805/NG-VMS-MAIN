@@ -9,17 +9,17 @@ services:
       - "5001:5001"
       - "9464:9464"
     environment:
-      - NODE_ENV=production
-      - PORT=5001
-      - MONGODB_URI=${MONGODB_URI:-mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-NGVmsEnterpriseDB2026!}@mongo:27017/ngvms?replicaSet=rs0&authSource=admin}
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
-      - JWT_SECRET=${JWT_SECRET:-YOUR_SUPER_SECRET_PRODUCTION_KEY}
-      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-minio}
-      - MINIO_PORT=${MINIO_PORT:-9000}
-      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
-      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
-      - SMTP_HOST=${SMTP_HOST:-smtp_relay}
-      - SMTP_PORT=${SMTP_PORT:-1025}
+      NODE_ENV: production
+      PORT: "5001"
+      MONGODB_URI: ${MONGODB_URI:-mongodb://admin:NGVmsEnterpriseDB2026!@mongo:27017/ngvms?replicaSet=rs0&authSource=admin}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      JWT_SECRET: ${JWT_SECRET:-YOUR_SUPER_SECRET_PRODUCTION_KEY}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-minio}
+      MINIO_PORT: ${MINIO_PORT:-9000}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      SMTP_HOST: ${SMTP_HOST:-smtp_relay}
+      SMTP_PORT: ${SMTP_PORT:-1025}
     depends_on:
       - redis
       - mongo
