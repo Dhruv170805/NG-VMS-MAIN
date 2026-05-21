@@ -19,7 +19,10 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
     const subdomain = req.headers['x-tenant-id'] as string;
     if (subdomain) {
       try {
-        const tenant = await Tenant.findOne({ subdomain });
+        let tenant = await Tenant.findOne({ subdomain });
+        if (!tenant && (subdomain === 'demo' || subdomain === 'localhost' || subdomain === 'default')) {
+          tenant = await Tenant.findOne();
+        }
         if (tenant) {
           const tenantReq = req as TenantRequest;
           tenantReq.tenant = tenant;
@@ -39,7 +42,10 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
   }
 
   try {
-    const tenant = await Tenant.findOne({ subdomain });
+    let tenant = await Tenant.findOne({ subdomain });
+    if (!tenant && (subdomain === 'demo' || subdomain === 'localhost' || subdomain === 'default')) {
+      tenant = await Tenant.findOne();
+    }
 
     if (!tenant) {
       return res.status(404).json({ error: 'Tenant not found' });
