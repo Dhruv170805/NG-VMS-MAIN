@@ -49,7 +49,7 @@ describe('TEST_GENERATOR: Visitor Intake & Approval Workflows', () => {
   let testTenant: any;
 
   beforeAll(async () => {
-    const url = process.env.MONGODB_URI || 'mongodb://localhost:27017/ng-vms-test';
+    const url = process.env.MONGODB_URI || 'mongodb://localhost:27017/ng-vms-test-visitor';
     await mongoose.connect(url);
 
     // Clean up
@@ -60,7 +60,7 @@ describe('TEST_GENERATOR: Visitor Intake & Approval Workflows', () => {
     // Create test tenant
     testTenant = await Tenant.create({      name: 'Test Tenant',
       subdomain: 'test-tenant',
-      licenseKey: Buffer.from(JSON.stringify({ features: { email: true, sms: true, aadhaar: true } })).toString('base64')
+      licenseKey: Buffer.from(JSON.stringify({ status: 'ACTIVE', companyCode: 'test-tenant', features: { email: true, sms: true, aadhaar: true } })).toString('base64')
     });
   });
 
@@ -82,6 +82,7 @@ describe('TEST_GENERATOR: Visitor Intake & Approval Workflows', () => {
         idProofNumber,
         consentGiven: true
         });
+    if (res.status !== 201) console.error('Registration failed body:', res.body);
     expect(res.status).toBe(201);
     expect(res.body.success).toBe(true);
     expect(res.body.visitor.name).toBe('Alice Smith');

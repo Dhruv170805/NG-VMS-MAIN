@@ -89,4 +89,10 @@ const VisitorSchema: Schema = new Schema({
   consentTimestamp: { type: Date },
 }, { timestamps: true });
 
+// Compound & Performance Optimization Indexes
+VisitorSchema.index({ tenantId: 1, hostId: 1, updatedAt: -1 });
+VisitorSchema.index({ tenantId: 1, phone: 1 });
+VisitorSchema.index({ tenantId: 1, status: 1 });
+VisitorSchema.index({ tenantId: 1, idNumberHash: 1 });
+
 export default mongoose.model<IVisitor>('Visitor', VisitorSchema);

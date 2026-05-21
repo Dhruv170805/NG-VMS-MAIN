@@ -61,7 +61,7 @@ export class SecurityManager {
 
   private constructor() {
     // AES Secret Key (256-bit)
-    this.secretKey = (process.env.LICENSE_SECRET || 'ngs-enterprise-system-validation').substring(0, 32);
+    this.secretKey = (process.env.LICENSE_SECRET || 'default-secret-key-123').substring(0, 32);
     
     // RSA Public Key (Standard PEM)
     const publicKeyPath = path.join(process.cwd(), 'public.pem');
@@ -105,7 +105,13 @@ export class SecurityManager {
    * Verifies RSA-SHA256 signature
    */
   private verifyRSASignature(payload: string, signature: string): boolean {
-    if (!this.publicKey) return true; // Skip ONLY if public key is not provided
+    if (!this.publicKey) {
+      if (process.env.NODE_ENV === 'production') {
+        console.error('[SECURITY] CRITICAL: public.pem not found in production. RSA signature validation cannot be bypassed.');
+        return false;
+      }
+      return true; // Skip ONLY in development/test if public key is not provided
+    }
     try {
       const verifier = crypto.createVerify('SHA256');
       verifier.update(payload);
@@ -155,11 +161,17 @@ export class SecurityManager {
           }
           rawData = this.decryptAES(decoded.enc);
         } else {
+          if (process.env.NODE_ENV === 'production') {
+            return { valid: false, reason: 'Unsigned licenses are not allowed in production' };
+          }
           // Assume direct JSON base64 (Unsigned)
           rawData = Buffer.from(licenseKey, 'base64').toString();
         }
         payload = JSON.parse(rawData);
       } catch (e) {
+        if (process.env.NODE_ENV === 'production') {
+          return { valid: false, reason: 'Signed license payload required in production' };
+        }
         // Raw AES Mode (Encrypted string directly)
         rawData = this.decryptAES(licenseKey);
         payload = JSON.parse(rawData);
@@ -213,7 +225,7 @@ export class SecurityManager {
           expiresAt: payload.expiresAt,
           status: payload.status,
           hardwareHash: payload.hardwareHash,
-          rootAdmin: payload.rootAdmin
+          rootAdmin: payload.rootAdmin || (payload.adminId ? { id: payload.adminId, password: payload.adminPassword } : undefined)
         }
       };
     } catch (error) {

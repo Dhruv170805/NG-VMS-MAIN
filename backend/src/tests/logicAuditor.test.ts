@@ -32,7 +32,7 @@ describe('Logic Auditor: Gate Security & Blacklist', () => {
   let testTenant: any;
 
   beforeAll(async () => {
-    const url = process.env.MONGODB_URI || 'mongodb://localhost:27017/ng-vms-test';
+    const url = process.env.MONGODB_URI || 'mongodb://localhost:27017/ng-vms-test-logic';
     await mongoose.connect(url);
 
     // Clean up
@@ -43,7 +43,7 @@ describe('Logic Auditor: Gate Security & Blacklist', () => {
     // Create test tenant
     testTenant = await Tenant.create({      name: 'Test Tenant',
       subdomain: 'test-tenant',
-      licenseKey: Buffer.from(JSON.stringify({ features: { email: true, sms: true, aadhaar: true } })).toString('base64')
+      licenseKey: Buffer.from(JSON.stringify({ status: 'ACTIVE', companyCode: 'test-tenant', features: { email: true, sms: true, aadhaar: true } })).toString('base64')
     });
   });
 

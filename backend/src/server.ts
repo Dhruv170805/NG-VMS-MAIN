@@ -1,6 +1,9 @@
 import dotenv from 'dotenv';
 dotenv.config(); // MUST be first — before any module that reads process.env
 import jwt from 'jsonwebtoken';
+import fs from 'fs';
+import path from 'path';
+import { SecurityManager } from './utils/securityManager';
 
 import { startOtel, shutdownTracing } from './utils/otel';
 startOtel();
@@ -124,23 +127,59 @@ mongoose
     mongoose.connection.setMaxListeners(25);
     console.log('[NG-VMS] Connected to MongoDB');
 
-    // Auto-bootstrap 'demo' tenant on clean startup to avoid config deadlock
+    // Auto-bootstrap tenant from license on clean startup
     try {
       const status = await BootstrapService.checkStatus();
       if (status.bootstrapRequired) {
-        console.log('[NG-VMS] Clean database detected. Auto-bootstrapping demo tenant...');
-        await BootstrapService.runBootstrap({
-          companyName: 'Demo Corporation',
-          subdomain: 'demo',
-          adminName: 'Demo Admin',
-          adminEmail: 'admin@demo.com',
-          adminPassword: 'password123',
-          guardName: 'Demo Guard',
-          guardEmail: 'guard@demo.com',
-          guardPassword: 'password123',
-          licenseKey: 'TRIAL-MODE'
-        });
-        console.log('[NG-VMS] Auto-bootstrapping complete! Default login: admin@demo.com / password123');
+        console.log('[NG-VMS] Clean database detected. Searching for license file to auto-bootstrap...');
+        
+        const licPaths = [
+          process.env.LICENSE_KEY_PATH || '',
+          path.join(process.cwd(), 'PE_01&VMS_NGS.lic'),
+          path.join(process.cwd(), 'license_NGS.lic'),
+          path.join(process.cwd(), 'license.vlic')
+        ].filter(Boolean);
+
+        let licPath = '';
+        for (const p of licPaths) {
+          if (fs.existsSync(p)) {
+            licPath = p;
+            break;
+          }
+        }
+
+        if (!licPath) {
+          console.warn('[NG-VMS] No license file found. Auto-bootstrap skipped. Please bootstrap via the CLI or bootstrap API.');
+        } else {
+          const licenseKeyString = fs.readFileSync(licPath, 'utf8').trim();
+          const securityManager = SecurityManager.getInstance();
+          const validation = await securityManager.validateTenantLicense(licenseKeyString);
+
+          if (!validation.valid) {
+            console.error(`[NG-VMS] Auto-bootstrap failed: License file at ${licPath} is invalid: ${validation.reason}`);
+          } else {
+            const data = validation.data!;
+            const companyName = data.company || 'Enterprise Corporation';
+            // Normalize subdomain: use companyCode if present, else sanitize company name
+            const subdomain = (data.companyCode || companyName).toLowerCase().replace(/[^a-z0-9_-]/g, '');
+            const adminEmail = data.rootAdmin?.id || 'admin@enterprise.com';
+            const adminPassword = data.rootAdmin?.password || 'password123';
+
+            console.log(`[NG-VMS] Bootstrapping tenant '${companyName}' [subdomain: ${subdomain}]...`);
+            await BootstrapService.runBootstrap({
+              companyName,
+              subdomain,
+              adminName: 'System Administrator',
+              adminEmail,
+              adminPassword,
+              guardName: 'Main Gate Guard',
+              guardEmail: `guard@${subdomain}.com`,
+              guardPassword: 'guardpassword123',
+              licenseKey: licenseKeyString
+            });
+            console.log(`[NG-VMS] Auto-bootstrapping complete! Tenant: ${companyName}, Admin: ${adminEmail}`);
+          }
+        }
       }
     } catch (err: any) {
       console.error('[NG-VMS] Auto-bootstrap error:', err.message);
@@ -184,24 +223,26 @@ io.on('connection', (socket) => {
   socket.on('ping', () => socket.emit('pong'));
 
   socket.on('join:host', (hostId: string) => {
-    // Map host room strictly under tenant namespace if available
-    if (tenantId) {
-      socket.join(`tenant_${tenantId}_host_${hostId}`);
-    } else {
-      socket.join(`host_${hostId}`);
+    // Hosts must be authenticated within a tenant context
+    if (!tenantId) {
+      return;
     }
+    socket.join(`tenant_${tenantId}_host_${hostId}`);
   });
 
   socket.on('join:visitor', async (visitorId: string) => {
     try {
-      const visitor = await mongoose.model('Visitor').findById(visitorId) as any;
+      if (!mongoose.Types.ObjectId.isValid(visitorId)) return;
+      const visitor = await mongoose.model('Visitor').findOne({ _id: visitorId }) as any;
       if (visitor) {
+        // Strict tenant boundary: if authenticated, socket tenantId must match visitor tenantId
+        if (tenantId && tenantId.toString() !== visitor.tenantId.toString()) {
+          return;
+        }
         socket.join(`tenant_${visitor.tenantId}_visitor_${visitorId}`);
-      } else {
-        socket.join(`visitor_${visitorId}`);
       }
     } catch (err) {
-      socket.join(`visitor_${visitorId}`);
+      // Safe catch
     }
   });
 

@@ -77,9 +77,22 @@ export class VisitorService {
 
     let finalStatus = status || visitor.status;
 
+    // Resolve blacklist invariant state
+    let isBlacklisted = false;
+    if (visitor.idNumberHash) {
+      const Blacklist = mongoose.model('Blacklist');
+      const blocked = await Blacklist.findOne({ idNumberHash: visitor.idNumberHash, active: true, tenantId });
+      if (blocked) {
+        isBlacklisted = true;
+      }
+    }
+
     // AETHER Sovereign Proof (RBAC + Invariants)
     if (status && status !== visitor.status) {
-      const proof = PolicyEngine.prove(status as ActionType, visitor, { id: actor.id, role: actor.role });
+      const visitorObj = visitor.toObject() as any;
+      visitorObj.isBlacklisted = isBlacklisted;
+      
+      const proof = PolicyEngine.prove(status as ActionType, visitorObj, { id: actor.id, role: actor.role });
       if (!proof.allowed) {
         throw new Error(proof.reason);
       }

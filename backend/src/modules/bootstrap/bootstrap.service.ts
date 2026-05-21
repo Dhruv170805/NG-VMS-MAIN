@@ -31,6 +31,7 @@ export class BootstrapService {
     if (!finalLicenseKey || finalLicenseKey === 'TRIAL-MODE') {
       const trialPayload = JSON.stringify({
         company: companyName,
+        companyCode: subdomain || 'default',
         status: 'ACTIVE',
         features: { email: true, sms: false, aadhaar: false },
         expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) // 14 days trial

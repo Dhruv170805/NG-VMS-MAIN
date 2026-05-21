@@ -58,6 +58,16 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
       if (!licenseCheck.valid) {
         return res.status(403).json({ error: `System locked: ${licenseCheck.reason}` });
       }
+
+      // Ensure the license is bound to this specific tenant subdomain
+      const licenseCompanyCode = licenseCheck.data?.companyCode;
+      if (!licenseCompanyCode) {
+        if (process.env.NODE_ENV === 'production') {
+          return res.status(403).json({ error: 'System locked: License is missing company binding.' });
+        }
+      } else if (licenseCompanyCode.toLowerCase() !== tenant.subdomain.toLowerCase()) {
+        return res.status(403).json({ error: 'System locked: License company code mismatch.' });
+      }
     }
 
     const tenantReq = req as TenantRequest;
