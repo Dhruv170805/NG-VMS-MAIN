@@ -115,7 +115,7 @@ export class SystemService {
       isValid: result.valid,
       reason: result.reason,
       payload: result.data,
-      hint: "Sovereign Decryption Successful. Integrity Verified."
+      hint: "NGS Decryption Successful. Integrity Verified."
     };
   }
 

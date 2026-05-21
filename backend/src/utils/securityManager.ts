@@ -175,8 +175,8 @@ export class SecurityManager {
         payload = JSON.parse(rawData);
       }
       
-      // --- Sovereign Decryption Audit ---
-      console.log('🛡️ [SECURITY] Sovereign License Decrypted Successfully.');
+      // --- NGS Decryption Audit ---
+      console.log('🛡️ [SECURITY] NGS License Decrypted Successfully.');
       console.log(`🏢 Company: ${payload.company || 'NOT_SET'}`);
       console.log(`🖼️ Logo URL: ${payload.features?.branding?.logoUrl || 'DEFAULT'}`);
       console.log(`📁 Logo JPG: ${payload.features?.branding?.logoFile || 'N/A'}`);

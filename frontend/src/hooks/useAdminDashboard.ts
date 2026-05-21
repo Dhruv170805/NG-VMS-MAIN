@@ -404,7 +404,7 @@ export const useAdminDashboard = () => {
       });
       const data = await res.json();
       if (res.ok) {
-        setUploadStatus({ message: 'Sovereign License Updated Successfully.', type: 'success' });
+        setUploadStatus({ message: 'NGS License Updated Successfully.', type: 'success' });
         fetchLicense();
         // Refresh page to apply feature changes
         setTimeout(() => window.location.reload(), 2000);

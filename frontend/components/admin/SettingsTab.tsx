@@ -72,7 +72,7 @@ export const SettingsTab: React.FC<Props> = ({
       className={styles.settings_view}
     >
       <div className={styles.system_presets_grid}>
-      {/* Sovereign License Activation */}
+      {/* NGS License Activation */}
       <div className="glass-card" style={{ padding: '30px', gridColumn: 'span 2', border: '1px solid rgba(0,122,255,0.2)', background: 'linear-gradient(135deg, rgba(0,122,255,0.05) 0%, rgba(255,255,255,0.05) 100%)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
@@ -80,7 +80,7 @@ export const SettingsTab: React.FC<Props> = ({
               <Shield size={20} color="var(--apple-blue)" />
             </div>
             <div>
-              <h3 style={{ margin: 0 }}>Sovereign License Perimeter</h3>
+              <h3 style={{ margin: 0 }}>NGS License Perimeter</h3>
               <p className={styles.config_desc} style={{ margin: '4px 0 0 0' }}>Manage enterprise activation and machine-locked security.</p>
             </div>
           </div>
@@ -202,7 +202,7 @@ export const SettingsTab: React.FC<Props> = ({
             >
               <div style={{ background: '#1c1c1e', color: '#32d74b', padding: '20px', borderRadius: '12px', fontFamily: 'monospace', fontSize: '0.8rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                  <span style={{ color: '#0a84ff' }}>// Sovereign License Decryption Inspector</span>
+                  <span style={{ color: '#0a84ff' }}>// NGS License Decryption Inspector</span>
                   <button 
                     style={{ background: 'transparent', border: 'none', color: '#636366', cursor: 'pointer' }}
                     onClick={async () => {
