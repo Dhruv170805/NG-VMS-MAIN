@@ -1,5 +1,12 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+export interface ISignature {
+  signed: boolean;
+  signedBy?: string;
+  signedAt?: Date;
+  signatureHash?: string;
+}
+
 export interface IVisitor extends Document {
   tenantId: mongoose.Types.ObjectId;
   name: string;
@@ -36,6 +43,9 @@ export interface IVisitor extends Document {
   processedBy?: string;
   consentGiven: boolean;
   consentTimestamp: Date;
+  visitorSignature?: ISignature;
+  guardSignature?: ISignature;
+  hostSignature?: ISignature;
   createdAt: Date;
 }
 
@@ -87,6 +97,24 @@ const VisitorSchema: Schema = new Schema({
   processedBy: { type: String },
   consentGiven: { type: Boolean, default: false },
   consentTimestamp: { type: Date },
+  visitorSignature: {
+    signed: { type: Boolean, default: false },
+    signedBy: { type: String },
+    signedAt: { type: Date },
+    signatureHash: { type: String }
+  },
+  guardSignature: {
+    signed: { type: Boolean, default: false },
+    signedBy: { type: String },
+    signedAt: { type: Date },
+    signatureHash: { type: String }
+  },
+  hostSignature: {
+    signed: { type: Boolean, default: false },
+    signedBy: { type: String },
+    signedAt: { type: Date },
+    signatureHash: { type: String }
+  },
 }, { timestamps: true });
 
 // Compound & Performance Optimization Indexes

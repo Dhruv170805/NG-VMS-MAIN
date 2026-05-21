@@ -54,6 +54,20 @@ export class VisitorService {
     }
 
     const visitor = new Visitor(visitorData);
+    
+    // Automatically generate Visitor Signature when visitor submits form
+    const signedAt = new Date();
+    const hash = crypto.createHmac('sha256', process.env.LICENSE_SECRET || 'default-secret-key-123')
+      .update(`${visitor._id}:${visitor.name}:${signedAt.toISOString()}:REGISTERED`)
+      .digest('hex');
+    
+    visitor.visitorSignature = {
+      signed: true,
+      signedBy: visitor.name,
+      signedAt,
+      signatureHash: hash
+    };
+
     await visitor.save();
 
     await VisitorLog.create({
@@ -120,6 +134,18 @@ export class VisitorService {
       dbUpdate.approvedAt = new Date();
       dbUpdate.expectedCheckout = new Date(dbUpdate.approvedAt.getTime() + hours * 60 * 60 * 1000);
       finalStatus = 'APPROVED';
+
+      const hostName = visitor.hostName || actor.name;
+      const signedAt = new Date();
+      const hash = crypto.createHmac('sha256', process.env.LICENSE_SECRET || 'default-secret-key-123')
+        .update(`${id}:${hostName}:${signedAt.toISOString()}:APPROVED`)
+        .digest('hex');
+      dbUpdate.hostSignature = {
+        signed: true,
+        signedBy: hostName,
+        signedAt,
+        signatureHash: hash
+      };
     }
     
     if (remark && status === 'APPROVED') {
@@ -132,7 +158,19 @@ export class VisitorService {
 
     dbUpdate.status = finalStatus;
 
-    if (finalStatus === 'GATE_IN') dbUpdate.checkInTime = new Date();
+    if (finalStatus === 'GATE_IN') {
+      dbUpdate.checkInTime = new Date();
+      const signedAt = new Date();
+      const hash = crypto.createHmac('sha256', process.env.LICENSE_SECRET || 'default-secret-key-123')
+        .update(`${id}:${actor.name}:${signedAt.toISOString()}:GATE_IN`)
+        .digest('hex');
+      dbUpdate.guardSignature = {
+        signed: true,
+        signedBy: actor.name,
+        signedAt,
+        signatureHash: hash
+      };
+    }
     if (finalStatus === 'MEET_IN') dbUpdate.meetInTime = new Date();
     if (finalStatus === 'MEET_OUT') dbUpdate.meetOutTime = new Date();
     if (finalStatus === 'GATE_OUT') dbUpdate.checkOutTime = new Date();
@@ -289,5 +327,51 @@ export class VisitorService {
     });
 
     return { visitor, type };
+  }
+
+  static generateSignatureHash(visitorId: string, actor: string, timestamp: Date, status: string): string {
+    const secret = process.env.LICENSE_SECRET || 'default-secret-key-123';
+    const payload = `${visitorId}:${actor}:${timestamp.toISOString()}:${status}`;
+    return crypto.createHmac('sha256', secret).update(payload).digest('hex');
+  }
+
+  static async verifyVisitorSignatures(id: string, tenantId: mongoose.Types.ObjectId) {
+    const visitor = await Visitor.findOne({ _id: id, tenantId });
+    if (!visitor) throw new Error('Visitor not found');
+
+    const result = {
+      visitor: { valid: false, details: null as any },
+      guard: { valid: false, details: null as any },
+      host: { valid: false, details: null as any },
+      tampered: false
+    };
+
+    if (visitor.visitorSignature && visitor.visitorSignature.signed) {
+      const sig = visitor.visitorSignature;
+      const expectedHash = this.generateSignatureHash(visitor._id.toString(), sig.signedBy || '', sig.signedAt!, 'REGISTERED');
+      result.visitor.valid = (sig.signatureHash === expectedHash);
+      result.visitor.details = sig;
+      if (!result.visitor.valid) result.tampered = true;
+    }
+
+    if (visitor.guardSignature && visitor.guardSignature.signed) {
+      const sig = visitor.guardSignature;
+      const expectedHash = this.generateSignatureHash(visitor._id.toString(), sig.signedBy || '', sig.signedAt!, 'GATE_IN');
+      result.guard.valid = (sig.signatureHash === expectedHash);
+      result.guard.details = sig;
+      if (!result.guard.valid) result.tampered = true;
+    }
+
+    if (visitor.hostSignature && visitor.hostSignature.signed) {
+      const sig = visitor.hostSignature;
+      const sigBy = sig.signedBy || '';
+      const hashApproved = this.generateSignatureHash(visitor._id.toString(), sigBy, sig.signedAt!, 'APPROVED');
+      const hashMeetIn = this.generateSignatureHash(visitor._id.toString(), sigBy, sig.signedAt!, 'MEET_IN');
+      result.host.valid = (sig.signatureHash === hashApproved || sig.signatureHash === hashMeetIn);
+      result.host.details = sig;
+      if (!result.host.valid) result.tampered = true;
+    }
+
+    return result;
   }
 }

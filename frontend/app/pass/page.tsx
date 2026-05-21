@@ -9,6 +9,7 @@ import { useTenant } from '../TenantContext';
 import { SkeletonCard, SkeletonText } from '../../components/ui/Skeleton';
 import { STATUS_LABELS } from '../constants';
 import { PassCard } from '../../components/ui/PassCard';
+import { PassFooter } from '../../components/ui/PassFooter';
 import { AlertCircle, ArrowRight, Shield, Info, CheckCircle, Smartphone, Download, RotateCcw, RotateCw, Printer } from 'lucide-react';
 import styles from './pass.module.css';
 
@@ -200,7 +201,7 @@ const DigitalPass: React.FC = () => {
       <div className={styles.pass_layout_v2}>
         {/* SCREEN VIEW: SIDE-BY-SIDE DUAL PASS */}
         {!isPrintView && (
-          <div className={`${styles.dual_page_display} ${styles.no_print}`}>
+          <div className={`${styles.dual_page_display} ${styles.no_print}`} style={{ flexDirection: 'column', gap: '2rem' }}>
             <PassCard 
               visitor={visitor} 
               tenant={tenant} 
@@ -210,7 +211,7 @@ const DigitalPass: React.FC = () => {
               hideOverlay={isStaff}
               sideBySide={isStaff}
             />
-
+            <PassFooter visitor={visitor} />
           </div>
         )}
 
@@ -311,6 +312,7 @@ const DigitalPass: React.FC = () => {
                <div style={{ background: '#000', height: '6px', width: '100%' }} />
              </div>
            </div>
+           <PassFooter visitor={visitor} />
         </div>
 
         {/* CONTROLS */}

@@ -195,3 +195,13 @@ export const getIdProofPreview: RequestHandler = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+export const verifyVisitorSignatures: RequestHandler = async (req, res) => {
+  const { params, tenantId } = req as TenantRequest;
+  try {
+    const verification = await VisitorService.verifyVisitorSignatures(params.id as string, tenantId!);
+    res.json({ success: true, verification });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
