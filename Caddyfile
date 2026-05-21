@@ -14,6 +14,12 @@
     # WebSocket / Socket.IO
     reverse_proxy /socket.io/* backend:5001
 
+    # Assets served directly from host volume
+    handle_path /assets/* {
+        root * /usr/share/caddy/assets
+        file_server
+    }
+
     # Next.js static/build assets
     reverse_proxy /_next/* frontend:3000
     reverse_proxy /static/* frontend:3000

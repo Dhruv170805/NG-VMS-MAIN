@@ -159,7 +159,7 @@ export class SecurityManager {
           }
           rawData = this.decryptAES(decoded.enc);
         } else {
-          if (process.env.NODE_ENV === 'production') {
+          if (process.env.NODE_ENV === 'production' && this.publicKey) {
             return { valid: false, reason: 'Unsigned licenses are not allowed in production' };
           }
           // Assume direct JSON base64 (Unsigned)
@@ -167,7 +167,7 @@ export class SecurityManager {
         }
         payload = JSON.parse(rawData);
       } catch (e) {
-        if (process.env.NODE_ENV === 'production') {
+        if (process.env.NODE_ENV === 'production' && this.publicKey) {
           return { valid: false, reason: 'Signed license payload required in production' };
         }
         // Raw AES Mode (Encrypted string directly)
