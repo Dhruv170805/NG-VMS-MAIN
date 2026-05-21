@@ -24,6 +24,13 @@ docker compose version &>/dev/null || die "Docker Compose v2 not found"
 
 # ── Build images from prod compose ─────────────────────────────────────────
 log "Building Docker images (prod compose)..."
+REDIS_PASSWORD=dummy_redis_pass \
+MONGO_ROOT_PASSWORD=dummy_mongo_pass \
+MINIO_SECRET_KEY=dummy_minio_secret \
+JWT_SECRET=dummy_jwt_secret \
+LICENSE_SECRET=dummy_license_secret \
+ENCRYPTION_KEY=dummy_enc_key \
+GRAFANA_PASSWORD=dummy_grafana_pass \
 docker compose -f docker-compose.prod.yml build --no-cache \
   --build-arg NEXT_PUBLIC_API_URL=/api \
   --build-arg NEXT_PUBLIC_SOCKET_URL=/
