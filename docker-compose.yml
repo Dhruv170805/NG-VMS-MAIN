@@ -85,7 +85,7 @@ services:
       - -c
       - cp /data/mongo/mongo.key /tmp/mongo.key && chmod 400 /tmp/mongo.key && chown 999:999 /tmp/mongo.key && exec mongod --replSet rs0 --bind_ip_all --quiet --auth --keyFile /tmp/mongo.key
     healthcheck:
-      test: ["CMD-SHELL", "mongosh -u admin -p 'NGVmsEnterpriseDB2026!' --authenticationDatabase admin --quiet --eval 'db.adminCommand({ping:1})' || exit 1"]
+      test: ["CMD-SHELL", "mongosh 'mongodb://admin:NGVmsEnterpriseDB2026%21@localhost:27017/admin?authSource=admin' --quiet --eval 'db.adminCommand({ping:1})' || exit 1"]
       interval: 15s
       timeout: 10s
       start_period: 30s
