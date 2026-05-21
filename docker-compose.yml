@@ -104,7 +104,20 @@ services:
     networks:
       - ngvms_network
     command: >
-      bash -c " echo 'Waiting for MongoDB to start...'; sleep 10; mongosh --host mongo:27017 -u \"$${MONGO_ROOT_USER:-admin}\" -p \"$${MONGO_ROOT_PASSWORD:-NGVmsEnterpriseDB2026!}\" --authenticationDatabase admin --quiet --eval \"try { rs.status() } catch (err) { rs.initiate({_id:'rs0',members:[{_id:0,host:'mongo:27017'}]}) }\" "
+      bash -c "
+      echo 'Waiting for MongoDB to start...';
+      for i in {1..30}; do
+        if mongosh --host mongo:27017 -u '${MONGO_ROOT_USER:-admin}' -p '${MONGO_ROOT_PASSWORD:-NGVmsEnterpriseDB2026!}' --authenticationDatabase admin --quiet --eval 'db.adminCommand({ping:1})' >/dev/null 2>&1; then
+          echo 'MongoDB is ready, initiating replica set...';
+          mongosh --host mongo:27017 -u '${MONGO_ROOT_USER:-admin}' -p '${MONGO_ROOT_PASSWORD:-NGVmsEnterpriseDB2026!}' --authenticationDatabase admin --quiet --eval 'try { rs.status() } catch (err) { rs.initiate({_id:\"rs0\",members:[{_id:0,host:\"mongo:27017\"}]}) }';
+          exit 0;
+        fi;
+        echo 'MongoDB not ready yet, retrying in 2s...';
+        sleep 2;
+      done;
+      echo 'MongoDB connection timed out!';
+      exit 1;
+      "
 
   minio:
     image: minio/minio
