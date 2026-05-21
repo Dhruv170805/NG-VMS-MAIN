@@ -78,18 +78,22 @@ services:
     image: mongo:6
     container_name: ngvms_mongo
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER:-admin}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:-NGVmsEnterpriseDB2026!}
-    command:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-NGVmsEnterpriseDB2026!}
+    entrypoint:
       - bash
       - -c
-      - cp /data/mongo/mongo.key /tmp/mongo.key && chmod 400 /tmp/mongo.key && chown 999:999 /tmp/mongo.key && exec mongod --replSet rs0 --bind_ip_all --quiet --auth --keyFile /tmp/mongo.key
+      - |
+        cp /data/mongo/mongo.key /tmp/mongo.key
+        chmod 400 /tmp/mongo.key
+        chown 999:999 /tmp/mongo.key
+        exec /usr/local/bin/docker-entrypoint.sh mongod --replSet rs0 --bind_ip_all --quiet --auth --keyFile /tmp/mongo.key
     healthcheck:
-      test: ["CMD-SHELL", "mongosh 'mongodb://admin:NGVmsEnterpriseDB2026%21@localhost:27017/admin?authSource=admin' --quiet --eval 'db.adminCommand({ping:1})' || exit 1"]
-      interval: 15s
-      timeout: 10s
-      start_period: 30s
-      retries: 10
+      test: ["CMD-SHELL", "mongosh --quiet --eval 'db.adminCommand({ping:1})' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      start_period: 60s
+      retries: 12
     restart: unless-stopped
     deploy:
       resources:
