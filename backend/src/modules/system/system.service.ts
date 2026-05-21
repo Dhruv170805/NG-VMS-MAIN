@@ -131,7 +131,7 @@ export class SystemService {
       const securityManager = SecurityManager.getInstance();
       let licenseValid = false;
       let licenseReason = 'No valid license found';
-      let features = { email: false, sms: false, aadhaar: false, biometrics: false, analytics: false, storage: 'local' };
+      let features = { email: false, sms: false, aadhaar: false, storage: 'local' };
       
       if (tenant.licenseKey) {
         const result = await securityManager.validateTenantLicense(tenant.licenseKey);

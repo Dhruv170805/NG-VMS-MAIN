@@ -16,8 +16,6 @@ export interface LicenseFeatures {
   email: boolean;
   sms: boolean;
   aadhaar: boolean;
-  biometrics: boolean;
-  analytics: boolean;
   storage: 'local' | 'minio' | 's3';
   branding?: {
     companyName: string;
@@ -215,8 +213,6 @@ export class SecurityManager {
             email: !!payload.features?.email,
             sms: !!payload.features?.sms,
             aadhaar: !!payload.features?.aadhaar,
-            biometrics: !!payload.features?.biometrics,
-            analytics: !!payload.features?.analytics,
             storage: payload.features?.storage || 'local',
             branding: payload.features?.branding
           },
@@ -242,21 +238,21 @@ export class SecurityManager {
       const tenant = await Tenant.findById(tenantId);
       if (!tenant) {
         console.warn(`[SECURITY] Tenant not found for ID: ${tenantId}`);
-        return { email: false, sms: false, aadhaar: false, biometrics: false, analytics: false, storage: 'local' };
+        return { email: false, sms: false, aadhaar: false, storage: 'local' };
       }
       if (!tenant.licenseKey) {
         console.warn(`[SECURITY] No license key found for tenant: ${tenant.name}`);
-        return { email: false, sms: false, aadhaar: false, biometrics: false, analytics: false, storage: 'local' };
+        return { email: false, sms: false, aadhaar: false, storage: 'local' };
       }
 
       const result = await this.validateTenantLicense(tenant.licenseKey);
       if (!result.valid) {
         console.warn(`[SECURITY] Invalid license for tenant ${tenant.name}: ${result.reason}`);
       }
-      return result.data?.features || { email: false, sms: false, aadhaar: false, biometrics: false, analytics: false, storage: 'local' };
+      return result.data?.features || { email: false, sms: false, aadhaar: false, storage: 'local' };
     } catch (error: any) {
       console.error(`[SECURITY] Error getting tenant features for ID ${tenantId}:`, error);
-      return { email: false, sms: false, aadhaar: false, biometrics: false, analytics: false, storage: 'local' };
+      return { email: false, sms: false, aadhaar: false, storage: 'local' };
     }
   }
 }
