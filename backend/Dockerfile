@@ -51,15 +51,12 @@ COPY --from=builder --chown=ngvms:nodejs /app/dist ./dist
 COPY --from=builder --chown=ngvms:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=ngvms:nodejs /app/package.json ./package.json
 
-# License file placeholder (mount at runtime via volume)
-# COPY --chown=ngvms:nodejs license.vlic ./license.vlic
-
 # Drop to non-root
 USER ngvms
 
 # Environment defaults (override via docker-compose or env injection)
 ENV NODE_ENV=production \
-    PORT=5001 \
+    PORT=5000 \
     # Prevent OTEL from crashing if collector unreachable
     OTEL_SDK_DISABLED=false
 
