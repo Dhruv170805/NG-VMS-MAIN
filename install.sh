@@ -135,10 +135,11 @@ fi
 
 # ── 7. ENSURE LICENSE FILE IS PRESENT ─────────────────────────────────────────
 log "Validating software licenses..."
-if [ ! -f license_NGS.lic ]; then
-    warn "license_NGS.lic not found in root path."
-    warn "The application backend will start in DEMO mode unless a valid license_NGS.lic is supplied."
-    touch license_NGS.lic
+shopt -s nullglob
+lic_files=( *_NGS.lic )
+if [ ${#lic_files[@]} -eq 0 ]; then
+    warn "No license file (*_NGS.lic) found in root path."
+    warn "The application backend will start in DEMO mode unless a valid *_NGS.lic is supplied."
 fi
 
 # ── 8. START CONTAINERS & INITIATE STACK ──────────────────────────────────────

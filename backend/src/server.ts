@@ -127,62 +127,88 @@ mongoose
     mongoose.connection.setMaxListeners(25);
     console.log('[NG-VMS] Connected to MongoDB');
 
-    // Auto-bootstrap tenant from license on clean startup
+    // Auto-bootstrap or update tenant license from files dynamically on startup
     try {
-      const status = await BootstrapService.checkStatus();
-      if (status.bootstrapRequired) {
-        console.log('[NG-VMS] Clean database detected. Searching for license file to auto-bootstrap...');
-        
-        const licPaths = [
-          process.env.LICENSE_KEY_PATH || '',
-          path.join(process.cwd(), 'PE_01&VMS_NGS.lic'),
-          path.join(process.cwd(), 'license_NGS.lic'),
-          path.join(process.cwd(), 'license.vlic')
-        ].filter(Boolean);
+      const searchDirs = [
+        process.cwd(),
+        path.join(process.cwd(), 'shared')
+      ];
+      const foundLicenses: { path: string; filename: string; key: string; companyCode: string }[] = [];
 
-        let licPath = '';
-        for (const p of licPaths) {
-          if (fs.existsSync(p)) {
-            licPath = p;
-            break;
+      // Check explicit environment variable first
+      if (process.env.LICENSE_KEY_PATH && fs.existsSync(process.env.LICENSE_KEY_PATH)) {
+        try {
+          const key = fs.readFileSync(process.env.LICENSE_KEY_PATH, 'utf8').trim();
+          if (key) {
+            const filename = path.basename(process.env.LICENSE_KEY_PATH);
+            const match = filename.match(/^([a-zA-Z0-9_-]+)&([a-zA-Z0-9_-]+)_NGS\.lic$/i);
+            const companyCode = match ? match[1] : 'demo';
+            foundLicenses.push({ path: process.env.LICENSE_KEY_PATH, filename, key, companyCode });
           }
+        } catch (err) {}
+      }
+
+      // Check directories for *_NGS.lic
+      for (const dir of searchDirs) {
+        if (!fs.existsSync(dir)) continue;
+        try {
+          const files = fs.readdirSync(dir);
+          for (const file of files) {
+            const isNgsLic = file.toLowerCase().endsWith('_ngs.lic');
+            if (isNgsLic) {
+              const fullPath = path.join(dir, file);
+              try {
+                const key = fs.readFileSync(fullPath, 'utf8').trim();
+                if (key) {
+                  const match = file.match(/^([a-zA-Z0-9_-]+)&([a-zA-Z0-9_-]+)_NGS\.lic$/i);
+                  const companyCode = match ? match[1] : 'demo';
+                  foundLicenses.push({ path: fullPath, filename: file, key, companyCode });
+                }
+              } catch (err) {}
+            }
+          }
+        } catch (err) {}
+      }
+
+      const securityManager = SecurityManager.getInstance();
+
+      // Process each found license key
+      for (const lic of foundLicenses) {
+        const validation = await securityManager.validateTenantLicense(lic.key);
+        if (!validation.valid) {
+          console.warn(`[NG-VMS] Found license file at ${lic.path} but validation failed: ${validation.reason}`);
+          continue;
         }
 
-        if (!licPath) {
-          console.warn('[NG-VMS] No license file found. Auto-bootstrap skipped. Please bootstrap via the CLI or bootstrap API.');
+        const data = validation.data!;
+        const companyCode = (lic.companyCode || data.companyCode || data.company || 'demo').toLowerCase().replace(/[^a-z0-9_-]/g, '');
+
+        const status = await BootstrapService.checkStatus();
+        if (status.bootstrapRequired) {
+          console.log(`[NG-VMS] Clean database detected. Auto-bootstrapping using license from ${lic.path}...`);
+          const companyName = data.company || 'Enterprise Corporation';
+          const adminEmail = data.rootAdmin?.id || 'admin@enterprise.com';
+          const adminPassword = data.rootAdmin?.password || 'password123';
+
+          await BootstrapService.runBootstrap({
+            companyName,
+            subdomain: companyCode,
+            adminName: 'System Administrator',
+            adminEmail,
+            adminPassword,
+            guardName: 'Main Gate Guard',
+            guardEmail: `guard@${companyCode}.com`,
+            guardPassword: adminPassword,
+            licenseKey: lic.key
+          });
+          console.log(`[NG-VMS] Auto-bootstrapping complete! Tenant: ${companyName}, Subdomain: ${companyCode}, Admin: ${adminEmail}`);
         } else {
-          const licenseKeyString = fs.readFileSync(licPath, 'utf8').trim();
-          const securityManager = SecurityManager.getInstance();
-          const validation = await securityManager.validateTenantLicense(licenseKeyString);
-
-          if (!validation.valid) {
-            console.error(`[NG-VMS] Auto-bootstrap failed: License file at ${licPath} is invalid: ${validation.reason}`);
-          } else {
-            const data = validation.data!;
-            const companyName = data.company || 'Enterprise Corporation';
-            // Normalize subdomain: use companyCode if present, else sanitize company name
-            const subdomain = (data.companyCode || companyName).toLowerCase().replace(/[^a-z0-9_-]/g, '');
-            const adminEmail = data.rootAdmin?.id || 'admin@enterprise.com';
-            const adminPassword = data.rootAdmin?.password || 'password123';
-
-            console.log(`[NG-VMS] Bootstrapping tenant '${companyName}' [subdomain: ${subdomain}]...`);
-            await BootstrapService.runBootstrap({
-              companyName,
-              subdomain,
-              adminName: 'System Administrator',
-              adminEmail,
-              adminPassword,
-              guardName: 'Main Gate Guard',
-              guardEmail: `guard@${subdomain}.com`,
-              guardPassword: adminPassword,
-              licenseKey: licenseKeyString
-            });
-            console.log(`[NG-VMS] Auto-bootstrapping complete! Tenant: ${companyName}, Admin: ${adminEmail}`);
-          }
+          // If already bootstrapped, check for dynamic update/alignment
+          await BootstrapService.updateTenantLicense(lic.key, data, companyCode);
         }
       }
     } catch (err: any) {
-      console.error('[NG-VMS] Auto-bootstrap error:', err.message);
+      console.error('[NG-VMS] Dynamic license processing error:', err.message);
     }
   })
   .catch((err) => console.error('[NG-VMS] MongoDB Connection Error:', err));

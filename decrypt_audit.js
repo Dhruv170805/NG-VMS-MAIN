@@ -28,13 +28,13 @@ function auditLicense(filePath) {
     const payload = JSON.parse(decryptedData);
 
     console.log('\n🛡️ --- SOVEREIGN DECRYPTION RESULTS ---');
-    console.log(`🏢 COMPANY:      ${payload.company || 'N/A'}`);
-    console.log(`📁 LOGO JPG:     ${payload.features?.branding?.logoFile || 'N/A'}`);
-    console.log(`🖼️ LOGO URL:     ${payload.features?.branding?.logoUrl || 'N/A'}`);
+    console.log(`🏢 COMPANY:      ${payload.companyName || payload.company || 'N/A'}`);
+    console.log(`📁 LOGO JPG:     ${payload.logoFile || payload.features?.branding?.logoFile || 'N/A'}`);
+    console.log(`🖼️ LOGO URL:     ${payload.logoUrl || payload.features?.branding?.logoUrl || 'N/A'}`);
     console.log(`📅 ISSUED AT:    ${payload.issuedAt || 'N/A'}`);
     console.log(`⌛ EXPIRES AT:   ${payload.expiresAt || 'N/A'}`);
-    console.log(`🔑 ROOT ADMIN:   ${payload.rootAdmin?.id || 'N/A'}`);
-    console.log(`🔐 ROOT PASS:    ${payload.rootAdmin?.password ? '******** (PRESENT)' : 'MISSING'}`);
+    console.log(`🔑 ROOT ADMIN:   ${payload.rootAdmin?.id || payload.adminId || 'N/A'}`);
+    console.log(`🔐 ROOT PASS:    ${payload.rootAdmin?.password || payload.adminPassword ? '******** (PRESENT)' : 'MISSING'}`);
     
     console.log('\n✨ ENABLED FEATURES:');
     if (payload.features) {

@@ -62,4 +62,5 @@ cypress/videos/
 cypress/screenshots/
 .eslintcache
 
-ngvms-enterprise-v2.1.1.tar.gz
+ngvms-enterprise-vV1.tar.gz
+ngvms-enterprise-vV1

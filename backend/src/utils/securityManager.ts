@@ -177,11 +177,11 @@ export class SecurityManager {
       
       // --- NGS Decryption Audit ---
       console.log('🛡️ [SECURITY] NGS License Decrypted Successfully.');
-      console.log(`🏢 Company: ${payload.company || 'NOT_SET'}`);
-      console.log(`🖼️ Logo URL: ${payload.features?.branding?.logoUrl || 'DEFAULT'}`);
-      console.log(`📁 Logo JPG: ${payload.features?.branding?.logoFile || 'N/A'}`);
+      console.log(`🏢 Company: ${payload.companyName || payload.company || 'NOT_SET'}`);
+      console.log(`🖼️ Logo URL: ${payload.logoUrl || payload.features?.branding?.logoUrl || 'DEFAULT'}`);
+      console.log(`📁 Logo JPG: ${payload.logoFile || payload.features?.branding?.logoFile || 'N/A'}`);
       console.log(`📅 Validity: ${payload.issuedAt || 'N/A'} -> ${payload.expiresAt || 'N/A'}`);
-      console.log(`🔑 Root Admin ID: ${payload.rootAdmin?.id || 'NOT_PROVISIONED'}`);
+      console.log(`🔑 Root Admin ID: ${payload.rootAdmin?.id || payload.adminId || 'NOT_PROVISIONED'}`);
       console.log(`✨ Features: ${Object.keys(payload.features || {}).filter(k => payload.features[k] === true).join(', ')}`);
       // ----------------------------------
 
@@ -206,15 +206,19 @@ export class SecurityManager {
       return {
         valid: true,
         data: {
-          company: payload.company,
-          companyCode: payload.companyCode || payload.urls?.["Tenant id "] || payload.company,
-          project: payload.project,
+          company: payload.companyName || payload.company,
+          companyCode: payload.companyCode || payload["Tenant id "] || payload.urls?.["Tenant id "] || payload.company,
+          project: payload.projectCode || payload.project || payload.projectName,
           features: {
-            email: !!payload.features?.email,
-            sms: !!payload.features?.sms,
-            aadhaar: !!payload.features?.aadhaar,
-            storage: payload.features?.storage || 'local',
-            branding: payload.features?.branding
+            email: !!(payload.features?.email || payload.features?.EMAIL),
+            sms: !!(payload.features?.sms || payload.features?.SMS),
+            aadhaar: !!(payload.features?.aadhaar || payload.features?.AADHAR || payload.features?.AADHAAR),
+            storage: payload.features?.storage || payload.features?.STORAGE || 'local',
+            branding: (payload.features?.branding || payload.features?.BRANDING) || (payload.companyName || payload.logoFile ? {
+              companyName: payload.companyName,
+              logoFile: payload.logoFile,
+              logoUrl: payload.logoUrl
+            } : undefined)
           },
           network: payload.network,
           dbConfig: payload.dbConfig,

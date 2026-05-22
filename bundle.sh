@@ -76,15 +76,16 @@ cp monitoring/prometheus.yml   "${BUNDLE_DIR}/monitoring/prometheus.yml"
 cp monitoring/alert.rules.yml  "${BUNDLE_DIR}/monitoring/alert.rules.yml"
 cp monitoring/alertmanager.yml "${BUNDLE_DIR}/monitoring/alertmanager.yml"
 
-# License file (if present)
-if [ -f license_NGS.lic ]; then
-  cp license_NGS.lic "${BUNDLE_DIR}/license_NGS.lic"
-  log "license_NGS.lic included"
-elif [ -f license.vlic ]; then
-  cp license.vlic "${BUNDLE_DIR}/license_NGS.lic"
-  log "license.vlic included (as license_NGS.lic)"
+# License files (if present)
+shopt -s nullglob
+lic_files=( *_NGS.lic )
+if [ ${#lic_files[@]} -gt 0 ]; then
+  for f in "${lic_files[@]}"; do
+    cp "$f" "${BUNDLE_DIR}/"
+    log "License file $f included"
+  done
 else
-  warn "License file NOT found — client must supply their own"
+  warn "License file (*_NGS.lic) NOT found — client must supply their own"
 fi
 
 # Image tarball

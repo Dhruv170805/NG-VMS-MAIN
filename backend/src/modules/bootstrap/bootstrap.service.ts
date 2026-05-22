@@ -108,4 +108,23 @@ export class BootstrapService {
       message: 'Bootstrap completed successfully. System is now locked.' 
     };
   }
+
+  static async updateTenantLicense(licenseKey: string, data: any, companyCode: string) {
+    const normalizedCode = companyCode.toLowerCase().replace(/[^a-z0-9_-]/g, '');
+    let tenant = await Tenant.findOne({ subdomain: normalizedCode });
+    if (!tenant) {
+      tenant = await Tenant.findOne();
+    }
+
+    if (tenant) {
+      if (tenant.licenseKey !== licenseKey) {
+        console.log(`🛡️ [SECURITY] New valid license detected for tenant '${tenant.name}' (file subdomain: ${companyCode}). Dynamically updating...`);
+        tenant.licenseKey = licenseKey;
+        await tenant.save();
+        console.log(`🛡️ [SECURITY] Dynamic NGS license update complete for tenant: ${tenant.name}`);
+        return true;
+      }
+    }
+    return false;
+  }
 }

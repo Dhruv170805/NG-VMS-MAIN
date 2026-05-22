@@ -110,13 +110,12 @@ services:
       SMTP_HOST: smtp_relay
       SMTP_PORT: "1025"
       SMTP_FROM: ${SMTP_FROM:-no-reply@ng-vms.enterprise}
-      LICENSE_KEY_PATH: /app/license.vlic
       LICENSE_SECRET: ${LICENSE_SECRET:?LICENSE_SECRET required}
       SKIP_HW_LOCK: ${SKIP_HW_LOCK:-false}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY required}  # BUG FIX: was hardcoded in encryption.ts
     volumes:
-      - ./license_NGS.lic:/app/license.vlic:ro
+      - .:/app/shared:ro
     depends_on:
       mongo: { condition: service_healthy }
       redis: { condition: service_healthy }
