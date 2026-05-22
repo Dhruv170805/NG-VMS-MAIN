@@ -21,8 +21,8 @@ export const metadata: Metadata = {
     title: "NG-VMS",
   },
   formatDetection: { telephone: false },
-  manifest: "/manifest.json",
-  icons: { icon: "/favicon.ico" },
+  manifest: "manifest.json",
+  icons: { icon: "favicon.ico" },
 };
 
 export const viewport: Viewport = {

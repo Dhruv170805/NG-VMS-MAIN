@@ -60,11 +60,11 @@ export const getTenantConfig: RequestHandler = async (req, res) => {
   try {
     if (!tenant) {
       console.error('[SYSTEM CONTROLLER] getTenantConfig: tenant is undefined');
-      return res.status(400).json({ success: false, message: 'Tenant not found. Please provide valid x-tenant-id header.' });
+      return res.status(400).json({ success: false, message: 'Tenant not found. Please provide valid x-tenant-id header or ensure the database has been bootstrapped with a valid license.' });
     }
     if (!tenantId) {
       console.error('[SYSTEM CONTROLLER] getTenantConfig: tenantId is undefined');
-      return res.status(400).json({ success: false, message: 'Tenant ID is missing.' });
+      return res.status(400).json({ success: false, message: 'Tenant ID is missing. Check database seeding status.' });
     }
     const config = await SystemService.getTenantConfig(tenant, tenantId);
     res.json(config);

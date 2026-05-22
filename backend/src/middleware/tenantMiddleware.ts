@@ -18,20 +18,21 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
   ];
   if (exemptRoutes.some(route => req.originalUrl.startsWith(route))) {
     const subdomain = req.headers['x-tenant-id'] as string;
-    if (subdomain) {
-      try {
-        let tenant = await Tenant.findOne({ subdomain });
-        if (!tenant && (subdomain === 'demo' || subdomain === 'localhost' || subdomain === 'default')) {
-          tenant = await Tenant.findOne();
-        }
-        if (tenant) {
-          const tenantReq = req as TenantRequest;
-          tenantReq.tenant = tenant;
-          tenantReq.tenantId = tenant._id as mongoose.Types.ObjectId;
-        }
-      } catch (error) {
-        console.error('[TENANT MIDDLEWARE] Safe extract error:', error);
+    try {
+      let tenant = null;
+      if (subdomain) {
+        tenant = await Tenant.findOne({ subdomain });
       }
+      if (!tenant && (!subdomain || subdomain === 'demo' || subdomain === 'localhost' || subdomain === 'default')) {
+        tenant = await Tenant.findOne();
+      }
+      if (tenant) {
+        const tenantReq = req as TenantRequest;
+        tenantReq.tenant = tenant;
+        tenantReq.tenantId = tenant._id as mongoose.Types.ObjectId;
+      }
+    } catch (error) {
+      console.error('[TENANT MIDDLEWARE] Safe extract error:', error);
     }
     return next();
   }

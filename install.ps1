@@ -87,6 +87,16 @@ foreach ($dir in $dirs) {
     if (!(Test-Path $dir)) { New-Item -ItemType Directory -Path $dir | Out-Null }
 }
 
+# Ensure Keyfile for Mongo Replica Sets
+if (!(Test-Path "data/mongo/mongo.key")) {
+    $bytes = New-Object byte[] 756
+    $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    $rng.GetBytes($bytes)
+    $key = [Convert]::ToBase64String($bytes)
+    [IO.File]::WriteAllText((Join-Path $PSScriptRoot "data/mongo/mongo.key"), $key)
+    Write-Host "[OK] MongoDB replica keyfile generated." -ForegroundColor Green
+}
+
 # --- 3. LICENSE CHECK ---
 Write-Host "[3/6] Verifying License..." -ForegroundColor White
 $licFile = ""
