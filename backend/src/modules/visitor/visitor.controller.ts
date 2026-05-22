@@ -205,3 +205,25 @@ export const verifyVisitorSignatures: RequestHandler = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+/** Public pass view — minimal fields only, safe for unauthenticated QR scan */
+export const getVisitorPass: RequestHandler = async (req, res) => {
+  const { params, tenantId } = req as TenantRequest;
+  try {
+    const visitor = await VisitorService.getById(params.id as string, tenantId!);
+    if (!visitor) return res.status(404).json({ success: false, message: 'Pass not found' });
+    res.json({
+      _id: visitor._id,
+      name: visitor.name,
+      status: visitor.status,
+      hostName: visitor.hostName,
+      purpose: visitor.purpose,
+      visitTime: visitor.visitTime,
+      qrCode: visitor.qrCode,
+      checkInTime: visitor.checkInTime,
+      checkOutTime: visitor.checkOutTime,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

@@ -39,13 +39,6 @@ const Home = () => {
   const { tenant, getTenantId } = useTenant();
   const [regUrl, setRegUrl] = useState('');
   
-  // Motion values for parallax (avoids state re-renders)
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-
-  const parallaxX = useSpring(mouseX, { stiffness: 50, damping: 20 });
-  const parallaxY = useSpring(mouseY, { stiffness: 50, damping: 20 });
-  
   // Login State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -159,29 +152,13 @@ const Home = () => {
     }
   };
 
-  const circle1X = useTransform(parallaxX, x => x);
-  const circle1Y = useTransform(parallaxY, y => y);
-  const circle2X = useTransform(parallaxX, x => -x);
-  const circle2Y = useTransform(parallaxY, y => -y);
-  const circle3X = useTransform(parallaxX, x => x * 0.5);
-  const circle3Y = useTransform(parallaxY, y => -y * 0.5);
-
   return (
     <div className={styles.home_container}>
-      {/* Dynamic Background Circles (Using motion values for silky smooth movement) */}
+      {/* Dynamic Background Circles */}
       <div className={styles.bg_circles}>
-        <motion.div 
-          style={{ x: circle1X, y: circle1Y }}
-          className={`${styles.circle} ${styles.circle_1}`} 
-        />
-        <motion.div 
-          style={{ x: circle2X, y: circle2Y }}
-          className={`${styles.circle} ${styles.circle_2}`} 
-        />
-        <motion.div 
-          style={{ x: circle3X, y: circle3Y }}
-          className={`${styles.circle} ${styles.circle_3}`} 
-        />
+        <div className={`${styles.circle} ${styles.circle_1}`} />
+        <div className={`${styles.circle} ${styles.circle_2}`} />
+        <div className={`${styles.circle} ${styles.circle_3}`} />
       </div>
       
       <motion.header 

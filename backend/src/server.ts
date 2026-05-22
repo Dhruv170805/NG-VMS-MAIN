@@ -42,6 +42,7 @@ import bootstrapRoutes from './modules/bootstrap/bootstrap.routes';
 import { BootstrapService } from './modules/bootstrap/bootstrap.service';
 import { setNotificationIO } from './utils/notificationService';
 import { tenantMiddleware } from './middleware/tenantMiddleware';
+import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -51,8 +52,24 @@ const server = http.createServer(app);
 const baseFrontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 const baseDomain = baseFrontendUrl.replace(/^https?:\/\//, '').split(':')[0];
 
+const allowedOrigins = new Set(
+  [
+    baseFrontendUrl,
+    'http://localhost:3000',
+    'http://localhost:8080',
+    process.env.CORS_EXTRA_ORIGIN,
+  ].filter(Boolean)
+);
+
 const corsOptions: cors.CorsOptions = {
-  origin: true,
+  origin: (origin, callback) => {
+    // Allow server-to-server (no Origin) and explicitly allowed origins
+    if (!origin || allowedOrigins.has(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS: Origin '${origin}' not allowed`));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'x-tenant-id'],
@@ -74,9 +91,8 @@ const authLimiter = rateLimit({
 const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
-      // Allow all origins that provide an Origin header (mirroring)
-      // or no origin (e.g. mobile apps/server-to-server)
-      callback(null, true);
+      if (!origin || allowedOrigins.has(origin)) callback(null, true);
+      else callback(new Error('CORS: Origin not allowed'));
     },
     methods: ['GET', 'POST'],
     credentials: true,
@@ -122,7 +138,12 @@ app.set('socketio', io);
 // Database Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/ng-vms';
 mongoose
-  .connect(MONGODB_URI)
+  .connect(MONGODB_URI, {
+    maxPoolSize: 20,
+    minPoolSize: 5,
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
+  })
   .then(async () => {
     mongoose.connection.setMaxListeners(25);
     console.log('[NG-VMS] Connected to MongoDB');
@@ -302,6 +323,9 @@ app.use('/api', (req, res) => {
 app.get('/health', (_req, res) =>
   res.status(200).json({ status: 'healthy', version: '1.0.0', timestamp: new Date().toISOString() })
 );
+
+// Centralized error handler — must be last
+app.use(errorHandler);
 
 const PORT = Number(process.env.PORT) || 5000;
 

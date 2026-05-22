@@ -21,6 +21,8 @@ services:
       SMTP_HOST: smtp_relay
       SMTP_PORT: "1025"
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      LICENSE_SECRET: ${LICENSE_SECRET:-default-secret-key-123}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-default-secret-key-123}
     depends_on:
       - mongo
       - redis

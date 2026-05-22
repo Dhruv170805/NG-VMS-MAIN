@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 const result = dotenv.config();
 
 const requiredEnv = ['MONGODB_URI', 'JWT_SECRET'];
+const requiredInProd = ['LICENSE_SECRET', 'ENCRYPTION_KEY'];
 
 export const validateEnv = () => {
   const missing = requiredEnv.filter(key => {
@@ -15,14 +16,29 @@ export const validateEnv = () => {
     console.error('-------------------------------------------------');
     console.error('❌ CRITICAL ERROR: Missing Environment Variables');
     console.error('-------------------------------------------------');
-    console.error(`The following required variables are missing or empty:`);
     missing.forEach(key => console.error(` - ${key}`));
-    console.error('\nPossible reasons:');
-    console.error('1. Your .env file is missing from the backend root.');
-    console.error('2. The variables are defined but have no values.');
-    console.error('3. You are running the server from a different directory.');
     console.error('\nCheck your .env file or environment configuration.');
     console.error('-------------------------------------------------\n');
     process.exit(1);
+  }
+
+  // Production-only required vars
+  if (process.env.NODE_ENV === 'production') {
+    const missingProd = requiredInProd.filter(key => {
+      const val = process.env[key];
+      return !val || val.trim() === '';
+    });
+    if (missingProd.length > 0) {
+      console.error('❌ CRITICAL: Missing production-required variables:');
+      missingProd.forEach(key => console.error(` - ${key}`));
+      process.exit(1);
+    }
+  } else {
+    // Warn in dev if security keys are missing
+    requiredInProd.forEach(key => {
+      if (!process.env[key]) {
+        console.warn(`[ENV] WARNING: ${key} not set — using insecure default. Set this in production.`);
+      }
+    });
   }
 };

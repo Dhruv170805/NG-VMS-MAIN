@@ -175,14 +175,12 @@ export class SecurityManager {
         payload = JSON.parse(rawData);
       }
       
-      // --- NGS Decryption Audit ---
-      console.log('🛡️ [SECURITY] NGS License Decrypted Successfully.');
-      console.log(`🏢 Company: ${payload.companyName || payload.company || 'NOT_SET'}`);
-      console.log(`🖼️ Logo URL: ${payload.logoUrl || payload.features?.branding?.logoUrl || 'DEFAULT'}`);
-      console.log(`📁 Logo JPG: ${payload.logoFile || payload.features?.branding?.logoFile || 'N/A'}`);
-      console.log(`📅 Validity: ${payload.issuedAt || 'N/A'} -> ${payload.expiresAt || 'N/A'}`);
-      console.log(`🔑 Root Admin ID: ${payload.rootAdmin?.id || payload.adminId || 'NOT_PROVISIONED'}`);
-      console.log(`✨ Features: ${Object.keys(payload.features || {}).filter(k => payload.features[k] === true).join(', ')}`);
+      // --- License Decryption Audit (dev only) ---
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('🛡️ [SECURITY] NGS License Decrypted.');
+        console.log(`  Company: ${payload.companyName || payload.company || 'NOT_SET'}`);
+        console.log(`  Expires: ${payload.expiresAt || 'N/A'}`);
+      }
       // ----------------------------------
 
       // 2. Validate Metadata

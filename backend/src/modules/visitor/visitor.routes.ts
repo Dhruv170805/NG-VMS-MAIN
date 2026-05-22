@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { 
-  registerVisitor, updateVisitorStatus, getVisitors, getVisitorById, 
+  registerVisitor, updateVisitorStatus, getVisitors, getVisitorById, getVisitorPass,
   lookupVisitor, exportVisitors, getVisitorTimeline, sendSecurityAlert,
   updateIdProofPreview, getIdProofPreview, verifyVisitorSignatures
 } from './visitor.controller';
@@ -17,7 +17,10 @@ router.get('/:id/verify-signatures', verifyVisitorSignatures);
 router.patch('/:id/status', protect, authorize('ADMIN', 'GUARD', 'STAFF', 'MANAGER'), updateVisitorStatus);
 router.post('/:id/id-preview', protect, authorize('ADMIN', 'GUARD'), updateIdProofPreview);
 router.post('/:id/notify-alert', protect, authorize('ADMIN', 'GUARD'), sendSecurityAlert);
-router.get('/:id', getVisitorById);
+// Public minimal pass view (QR scan) — returns only non-sensitive fields
+router.get('/:id/pass', getVisitorPass);
+// Protected full record — requires authentication
+router.get('/:id', protect, authorize('ADMIN', 'GUARD', 'STAFF', 'MANAGER'), getVisitorById);
 router.get('/', protect, authorize('ADMIN', 'GUARD', 'STAFF', 'MANAGER'), getVisitors);
 
 export default router;

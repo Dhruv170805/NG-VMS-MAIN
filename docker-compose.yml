@@ -13,6 +13,8 @@ services:
       MONGODB_URI: ${MONGODB_URI:-mongodb://admin:NGVmsEnterpriseDB2026!@mongo:27017/ngvms?replicaSet=rs0&authSource=admin}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       JWT_SECRET: ${JWT_SECRET:-YOUR_SUPER_SECRET_PRODUCTION_KEY}
+      LICENSE_SECRET: ${LICENSE_SECRET:-default-secret-key-123}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-default-secret-key-123}
       MINIO_ENDPOINT: ${MINIO_ENDPOINT:-minio}
       MINIO_PORT: ${MINIO_PORT:-9000}
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
@@ -74,6 +76,8 @@ services:
   mongo:
     image: mongo:6
     container_name: ngvms_mongo
+    ports:
+      - "27017:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-NGVmsEnterpriseDB2026!}
