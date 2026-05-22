@@ -6,13 +6,13 @@
     respond /health 200
 
     # Backend API
-    reverse_proxy /api/* backend:5001 {
+    reverse_proxy /api/* backend:5000 {
         header_up X-Real-IP {remote_host}
         header_up X-Forwarded-For {remote_host}
     }
 
     # WebSocket / Socket.IO
-    reverse_proxy /socket.io/* backend:5001
+    reverse_proxy /socket.io/* backend:5000
 
     # Assets served directly from host volume
     handle_path /assets/* {

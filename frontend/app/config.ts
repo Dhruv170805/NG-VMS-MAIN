@@ -4,10 +4,28 @@
  */
 const isBrowser = typeof window !== 'undefined';
 
-// Use explicit env variables if defined, otherwise derive dynamically from the browser's origin.
-// This enables seamless reverse-proxy deployments (Caddy, IIS, Nginx) without hardcoding domains.
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || (isBrowser ? `${window.location.origin}/api` : 'http://localhost:5001/api');
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || (isBrowser ? window.location.origin : 'http://localhost:5001');
+const getApiUrl = () => {
+  if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
+  if (!isBrowser) return 'http://localhost:5000/api';
+  
+  if (window.location.port === '3000') {
+    return 'http://localhost:8080/api';
+  }
+  return `${window.location.origin}/api`;
+};
+
+const getSocketUrl = () => {
+  if (process.env.NEXT_PUBLIC_SOCKET_URL) return process.env.NEXT_PUBLIC_SOCKET_URL;
+  if (!isBrowser) return 'http://localhost:5000';
+  
+  if (window.location.port === '3000') {
+    return 'http://localhost:8080';
+  }
+  return window.location.origin;
+};
+
+const API_BASE_URL = getApiUrl();
+const SOCKET_URL = getSocketUrl();
 
 export const API_CONFIG = {
   BASE_URL: API_BASE_URL,

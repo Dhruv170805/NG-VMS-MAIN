@@ -117,9 +117,24 @@ export class BootstrapService {
     }
 
     if (tenant) {
-      if (tenant.licenseKey !== licenseKey) {
-        console.log(`🛡️ [SECURITY] New valid license detected for tenant '${tenant.name}' (file subdomain: ${companyCode}). Dynamically updating...`);
+      const newName = data.company || tenant.name;
+      const newSubdomain = normalizedCode || tenant.subdomain;
+
+      const logoFile = data.features?.branding?.logoFile || data.logoFile;
+      const logoUrl = data.features?.branding?.logoUrl || data.logoUrl;
+      const resolvedLogo = logoFile ? `/assets/${logoFile}` : (logoUrl || null);
+
+      if (
+        tenant.licenseKey !== licenseKey ||
+        tenant.name !== newName ||
+        tenant.subdomain !== newSubdomain ||
+        tenant.logoUrl !== resolvedLogo
+      ) {
+        console.log(`🛡️ [SECURITY] Dynamic update for tenant '${tenant.name}' -> '${newName}' (subdomain: '${newSubdomain}', logoUrl: '${resolvedLogo}')...`);
         tenant.licenseKey = licenseKey;
+        tenant.name = newName;
+        tenant.subdomain = newSubdomain;
+        tenant.logoUrl = resolvedLogo;
         await tenant.save();
         console.log(`🛡️ [SECURITY] Dynamic NGS license update complete for tenant: ${tenant.name}`);
         return true;

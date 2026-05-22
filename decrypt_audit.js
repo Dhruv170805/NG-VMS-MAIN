@@ -5,7 +5,7 @@ const fs = require('fs');
  * NG-VMS Sovereign Decryption Auditor
  */
 
-const SECRET_KEY = 'ngs-enterprise-system-validation'; 
+const SECRET_KEY = process.env.LICENSE_SECRET || 'default-secret-key-123'; 
 
 function auditLicense(filePath) {
   if (!fs.existsSync(filePath)) {
