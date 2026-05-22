@@ -15,80 +15,20 @@ import styles from './home.module.css';
 // --- SUB-COMPONENTS (Defined outside to prevent re-creation flicker) ---
 
 const TiltCard = ({ children, className }: { children: React.ReactNode, className?: string }) => {
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-
-  const mouseXSpring = useSpring(x);
-  const mouseYSpring = useSpring(y);
-
-  const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["10deg", "-10deg"]);
-  const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-10deg", "10deg"]);
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const width = rect.width;
-    const height = rect.height;
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-    const xPct = mouseX / width - 0.5;
-    const yPct = mouseY / height - 0.5;
-    x.set(xPct);
-    y.set(yPct);
-  };
-
-  const handleMouseLeave = () => {
-    x.set(0);
-    y.set(0);
-  };
-
   return (
-    <motion.div
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      style={{
-        rotateX,
-        rotateY,
-        transformStyle: "preserve-3d",
-      }}
-      className={className}
-    >
-      <div style={{ transform: "translateZ(50px)" }}>
+    <div className={className}>
+      <div>
         {children}
       </div>
-    </motion.div>
+    </div>
   );
 };
 
 const MagneticButton = ({ children, className, style, ...props }: any) => {
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const mouseXSpring = useSpring(x, { stiffness: 150, damping: 15 });
-  const mouseYSpring = useSpring(y, { stiffness: 150, damping: 15 });
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    const { clientX, clientY } = e;
-    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
-    const centerX = left + width / 2;
-    const centerY = top + height / 2;
-    x.set(clientX - centerX);
-    y.set(clientY - centerY);
-  };
-
-  const handleMouseLeave = () => {
-    x.set(0);
-    y.set(0);
-  };
-
   return (
-    <motion.button
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      style={{ x: mouseXSpring, y: mouseYSpring, ...style }}
-      className={className}
-      {...props}
-    >
+    <button className={className} style={style} {...props}>
       {children}
-    </motion.button>
+    </button>
   );
 };
 
@@ -120,16 +60,8 @@ const Home = () => {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setRegUrl(`${window.location.origin}/register`);
-      
-      const handleMouseMoveGlobal = (e: MouseEvent) => {
-        mouseX.set((e.clientX / window.innerWidth - 0.5) * 20);
-        mouseY.set((e.clientY / window.innerHeight - 0.5) * 20);
-      };
-      
-      window.addEventListener('mousemove', handleMouseMoveGlobal);
-      return () => window.removeEventListener('mousemove', handleMouseMoveGlobal);
     }
-  }, [mouseX, mouseY]);
+  }, []);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -263,12 +195,12 @@ const Home = () => {
           className={styles.logo_wrap}
         >
           {tenant?.logoUrl ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-              <img src={tenant.logoUrl} alt={tenant.name} width={50} height={50} style={{ objectFit: 'contain' }} />
+            <>
+              <img src={tenant.logoUrl} alt={tenant.name} width={50} height={50} />
               <span>{tenant.name}</span>
-            </div>
+            </>
           ) : (
-            tenant?.name || 'NextGen VMS'
+            <span>{tenant?.name || 'NextGen VMS'}</span>
           )}
         </motion.div>
         <motion.p variants={titleVariants} style={{ opacity: 0.6, marginTop: '8px' }}>
@@ -368,17 +300,10 @@ const Home = () => {
           <TiltCard className={styles.glass_card_v2}>
             <div className={styles.login_section}>
               <header className={styles.login_header}>
-                {tenant?.logoUrl ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                    <img src={tenant.logoUrl} alt={tenant.name} width={50} height={50} style={{ objectFit: 'contain' }} />
-                    <span style={{ fontWeight: 800, fontSize: '1.1rem', color: '#000' }}>{tenant.name}</span>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <ShieldCheck size={28} color="var(--apple-blue)" />
-                    <span style={{ fontWeight: 900, color: 'var(--apple-blue)', fontSize: '0.75rem', letterSpacing: '2px' }}>PORTAL</span>
-                  </div>
-                )}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <ShieldCheck size={28} color="var(--apple-blue)" />
+                  <span style={{ fontWeight: 900, color: 'var(--apple-blue)', fontSize: '0.75rem', letterSpacing: '2px' }}>PORTAL</span>
+                </div>
                 <h2>Staff Login 🔐</h2>
                 <p style={{ opacity: 0.5, fontSize: '0.9rem' }}>Secure access for authorized teams.</p>
               </header>

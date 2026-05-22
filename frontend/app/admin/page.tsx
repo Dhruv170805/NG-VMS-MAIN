@@ -21,6 +21,14 @@ import styles from './admin.module.css';
 const AdminDashboard: React.FC = () => {
   const { tenant, getTenantId } = useTenant();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+
+  React.useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const {
     activeTab, setActiveTab,
     staffView, setStaffView,
@@ -79,7 +87,7 @@ const AdminDashboard: React.FC = () => {
       <motion.aside 
         initial={false}
         animate={{ 
-          x: typeof window !== 'undefined' && window.innerWidth <= 768 
+          x: windowWidth <= 768 
             ? (isMobileMenuOpen ? 0 : -320) 
             : 0,
           opacity: 1 

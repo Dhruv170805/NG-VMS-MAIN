@@ -30,6 +30,14 @@ export default function GuardTerminal() {
   const { connectSocket, disconnectSocket, socket } = useAppStore();
 
   // Core State
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const [scanStatus, setScanStatus] = useState<'idle' | 'scanning' | 'verifying' | 'success' | 'error'>('idle');
   const [visitor, setVisitor] = useState<Visitor | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
@@ -737,7 +745,7 @@ export default function GuardTerminal() {
           className="sidebar_wrapper_global"
           initial={false}
           animate={{ 
-            x: typeof window !== 'undefined' && window.innerWidth <= 768 
+            x: windowWidth <= 768 
               ? (isSidebarOpen ? 0 : -420) 
               : 0 
           }}
