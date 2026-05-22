@@ -8,16 +8,21 @@ import { SecurityManager } from './utils/securityManager';
 import { startOtel, shutdownTracing } from './utils/otel';
 startOtel();
 
-import express from 'express';
+import express, { Request } from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
+import RedisStore from 'rate-limit-redis';
 import cookieParser from 'cookie-parser';
 import { createClient } from 'redis';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { validateEnv } from './config/env';
+import logger from './utils/logger';
+import requestLogger from './middleware/requestLogger';
+import redisConnection from './config/redis';
+import { initQueues } from './queues/queueSetup';
 
 // Pre-flight environment check
 validateEnv();
@@ -44,9 +49,9 @@ import { setNotificationIO } from './utils/notificationService';
 import { tenantMiddleware } from './middleware/tenantMiddleware';
 import { errorHandler } from './middleware/errorHandler';
 
-const app = express();
+export const app = express();
 app.set('trust proxy', 1);
-const server = http.createServer(app);
+export const server = http.createServer(app);
 
 // CORS — support dynamic subdomains
 const baseFrontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
@@ -67,6 +72,15 @@ const corsOptions: cors.CorsOptions = {
     if (!origin || allowedOrigins.has(origin)) {
       callback(null, true);
     } else {
+      try {
+        const hostname = new URL(origin).hostname;
+        if (hostname === baseDomain || hostname.endsWith('.' + baseDomain)) {
+          callback(null, true);
+          return;
+        }
+      } catch (err) {
+        // ignore invalid URL formats
+      }
       callback(new Error(`CORS: Origin '${origin}' not allowed`));
     }
   },
@@ -75,17 +89,36 @@ const corsOptions: cors.CorsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'x-tenant-id'],
 };
 
-// Rate Limiting
+// Rate Limiting per Tenant
+const tenantKeyGenerator = (req: any) => {
+  const tenantId = req.headers['x-tenant-id'] || 'global';
+  return `rate_limit:${tenantId}:${req.ip}`;
+};
+
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 1000,
-  message: 'Too many requests from this IP, please try again after 15 minutes',
+  validate: { ip: false },
+  skip: () => process.env.NODE_ENV === 'test',
+  message: { error: 'Too many requests from this tenant, please try again after 15 minutes' },
+  store: new RedisStore({
+    // @ts-expect-error - ioredis sendCommand type is compatible
+    sendCommand: (...args: string[]) => redisConnection.call(args[0], ...args.slice(1)),
+  }),
+  keyGenerator: tenantKeyGenerator,
 });
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
-  message: 'Too many login attempts, please try again after 15 minutes',
+  validate: { ip: false },
+  skip: () => process.env.NODE_ENV === 'test',
+  message: { error: 'Too many login attempts, please try again after 15 minutes' },
+  store: new RedisStore({
+    // @ts-expect-error - ioredis sendCommand type is compatible
+    sendCommand: (...args: string[]) => redisConnection.call(args[0], ...args.slice(1)),
+  }),
+  keyGenerator: tenantKeyGenerator,
 });
 
 const io = new Server(server, {
@@ -112,10 +145,10 @@ const subClient = pubClient.duplicate();
 Promise.all([pubClient.connect(), subClient.connect()])
   .then(() => {
     io.adapter(createAdapter(pubClient, subClient));
-    console.log('[NG-VMS] Socket.io Redis adapter connected');
+    logger.info('[NG-VMS] Socket.io Redis adapter connected');
   })
   .catch((err) => {
-    console.warn('[NG-VMS] Redis unavailable, using in-memory adapter:', err.message);
+    logger.warn({ err: err.message }, '[NG-VMS] Redis unavailable, using in-memory adapter');
   });
 
 setNotificationIO(io);
@@ -125,11 +158,15 @@ app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ limit: '5mb', extended: true }));
+app.use(requestLogger); // Structured Request Logging
 
-// Apply Tenant Middleware to all API routes
+// Apply Tenant Middleware to all versioned and base API routes
+app.use('/api/v1', tenantMiddleware);
 app.use('/api', tenantMiddleware);
 
+app.use('/api/v1', limiter);
 app.use('/api', limiter);
+app.use('/api/v1/auth/login', authLimiter);
 app.use('/api/auth/login', authLimiter);
 
 // Make Socket.io available in controllers
@@ -146,7 +183,10 @@ mongoose
   })
   .then(async () => {
     mongoose.connection.setMaxListeners(25);
-    console.log('[NG-VMS] Connected to MongoDB');
+    logger.info('[NG-VMS] Connected to MongoDB');
+    
+    // Initialize BullMQ background queues
+    await initQueues();
 
     // Auto-bootstrap or update tenant license from files dynamically on startup
     try {
@@ -302,20 +342,30 @@ io.on('connection', (socket) => {
 app.get('/', (_req, res) =>
   res.status(200).send(`NG-VMS API Server is running. Access the frontend at ${baseFrontendUrl}`)
 );
-app.use('/api/auth', authRoutes);
-app.use('/api/visitors', visitorRoutes);
-app.use('/api/bootstrap', bootstrapRoutes);
-app.use('/api/system', systemRoutes);
-app.use('/api/analytics', analyticsRoutes);
-app.use('/api/employees', employeeRoutes);
-app.use('/api/gate', gateRoutes);
-app.use('/api/handover', handoverRoutes);
-app.use('/api/blacklist', blacklistRoutes);
-app.use('/api/aadhaar', aadhaarRoutes);
+
+const registerRoutes = (prefix: string) => {
+  app.use(`${prefix}/auth`, authRoutes);
+  app.use(`${prefix}/visitors`, visitorRoutes);
+  app.use(`${prefix}/bootstrap`, bootstrapRoutes);
+  app.use(`${prefix}/system`, systemRoutes);
+  app.use(`${prefix}/analytics`, analyticsRoutes);
+  app.use(`${prefix}/employees`, employeeRoutes);
+  app.use(`${prefix}/gate`, gateRoutes);
+  app.use(`${prefix}/handover`, handoverRoutes);
+  app.use(`${prefix}/blacklist`, blacklistRoutes);
+  app.use(`${prefix}/aadhaar`, aadhaarRoutes);
+};
+
+registerRoutes('/api/v1');
+registerRoutes('/api'); // legacy routing support
 
 // Catch-all 404 for API
+app.use('/api/v1', (req, res) => {
+  logger.warn(`[404] Missing API Endpoint: ${req.method} ${req.originalUrl}`);
+  res.status(404).json({ success: false, message: `API endpoint not found: ${req.originalUrl}` });
+});
 app.use('/api', (req, res) => {
-  console.warn(`[404] Missing API Endpoint: ${req.method} ${req.originalUrl}`);
+  logger.warn(`[404] Missing API Endpoint: ${req.method} ${req.originalUrl}`);
   res.status(404).json({ success: false, message: `API endpoint not found: ${req.originalUrl}` });
 });
 
@@ -331,7 +381,7 @@ const PORT = Number(process.env.PORT) || 5000;
 
 // Graceful Shutdown
 const shutdown = async () => {
-  console.log('\n[NG-VMS] Initiating graceful shutdown...');
+  logger.info('\n[NG-VMS] Initiating graceful shutdown...');
   try {
     io.close();
     if (pubClient.isOpen) await pubClient.quit();
@@ -339,11 +389,11 @@ const shutdown = async () => {
     await mongoose.connection.close();
     await shutdownTracing();
     server.close(() => {
-      console.log('[NG-VMS] Server offline. Shutdown complete.');
+      logger.info('[NG-VMS] Server offline. Shutdown complete.');
       process.exit(0);
     });
-  } catch (err) {
-    console.error('[NG-VMS] Shutdown error:', err);
+  } catch (err: any) {
+    logger.error({ err: err.message }, '[NG-VMS] Shutdown error');
     process.exit(1);
   }
 };
@@ -351,6 +401,8 @@ const shutdown = async () => {
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`[NG-VMS] Server running on http://127.0.0.1:${PORT}`);
-});
+if (process.env.NODE_ENV !== 'test') {
+  server.listen(PORT, '0.0.0.0', () => {
+    logger.info(`[NG-VMS] Server running on http://127.0.0.1:${PORT}`);
+  });
+}

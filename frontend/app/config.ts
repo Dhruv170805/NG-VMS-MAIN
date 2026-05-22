@@ -6,12 +6,12 @@ const isBrowser = typeof window !== 'undefined';
 
 const getApiUrl = () => {
   if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
-  if (!isBrowser) return 'http://localhost:5000/api';
+  if (!isBrowser) return 'http://localhost:5000/api/v1';
   
   if (window.location.port === '3000') {
-    return 'http://localhost:8080/api';
+    return 'http://localhost:8080/api/v1';
   }
-  return `${window.location.origin}/api`;
+  return `${window.location.origin}/api/v1`;
 };
 
 const getSocketUrl = () => {

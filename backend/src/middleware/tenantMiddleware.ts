@@ -12,6 +12,7 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
   // Exempt routes that don't require a tenant context (e.g., bootstrap and health checks)
   // We also exempt the license update route so a locked system can still be unlocked
   const exemptRoutes = [
+    '/api/v1/bootstrap', '/api/v1/system/health', '/api/v1/system/version', '/api/v1/system/config', '/api/v1/system/license',
     '/api/bootstrap', '/api/system/health', '/api/system/version', '/api/system/config', '/api/system/license',
     '/bootstrap', '/system/health', '/system/version', '/system/config', '/system/license'
   ];
@@ -53,7 +54,7 @@ export const tenantMiddleware = async (req: Request, res: Response, next: NextFu
 
     // License Validation Check
     // We must allow auth routes to bypass the strict license lock so admins can log in to update the license.
-    if (!req.originalUrl.startsWith('/api/auth') && !req.originalUrl.startsWith('/auth')) {
+    if (!req.originalUrl.startsWith('/api/v1/auth') && !req.originalUrl.startsWith('/api/auth') && !req.originalUrl.startsWith('/auth')) {
       if (!tenant.licenseKey) {
         return res.status(403).json({ error: 'System locked: No valid license found.' });
       }

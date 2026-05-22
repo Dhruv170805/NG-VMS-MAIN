@@ -32,7 +32,7 @@ LICENSE_SECRET=dummy_license_secret \
 ENCRYPTION_KEY=dummy_enc_key \
 GRAFANA_PASSWORD=dummy_grafana_pass \
 docker compose -f docker-compose.prod.yml build --no-cache \
-  --build-arg NEXT_PUBLIC_API_URL=/api \
+  --build-arg NEXT_PUBLIC_API_URL=/api/v1 \
   --build-arg NEXT_PUBLIC_SOCKET_URL=/
 
 log "Tagging images..."

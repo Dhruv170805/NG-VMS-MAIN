@@ -12,17 +12,35 @@ export const setNotificationIO = (io: Server) => {
 
 const getSMTPTransport = async (tenantId: any) => {
   const settings = await Setting.findOne({ key: 'smtp_config', tenantId });
-  if (!settings || !settings.value) return null;
+  if (settings && settings.value) {
+    const { host, port, user, pass, secure } = settings.value;
+    if (host && user && pass) {
+      return nodemailer.createTransport({
+        host,
+        port: parseInt(port),
+        secure: secure === 'true' || secure === true,
+        auth: { user, pass }
+      });
+    }
+  }
 
-  const { host, port, user, pass, secure } = settings.value;
-  if (!host || !user || !pass) return null;
+  // Environment fallback
+  if (process.env.SMTP_HOST) {
+    const options: any = {
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || '1025'),
+      secure: process.env.SMTP_SECURE === 'true',
+    };
+    if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+      options.auth = {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      };
+    }
+    return nodemailer.createTransport(options);
+  }
 
-  return nodemailer.createTransport({
-    host,
-    port: parseInt(port),
-    secure: secure === 'true' || secure === true,
-    auth: { user, pass }
-  });
+  return null;
 };
 
 export type RecipientType = 'ADMIN' | 'GUARD' | 'HOST' | 'VISITOR';

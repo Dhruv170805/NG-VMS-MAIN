@@ -4,16 +4,40 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import Employee from '../../models/Employee';
 import { sendNotification } from '../../utils/notificationService';
+import redisConnection from '../../config/redis';
 
 export class AuthService {
-  static generateToken(id: string, name: string, role: string, tenantId: string) {
+  static async generateTokens(id: string, name: string, role: string, tenantId: string) {
     const secret = process.env.JWT_SECRET;
     if (!secret) {
       throw new Error('FATAL ERROR: JWT_SECRET must be defined');
     }
-    return jwt.sign({ id, name, role, tenantId }, secret, {
+    
+    // Access Token: Short-lived (15 minutes)
+    const accessToken = jwt.sign({ id, name, role, tenantId }, secret, {
+      expiresIn: '15m',
+    });
+
+    // Refresh Token: Long-lived (30 days)
+    const refreshToken = jwt.sign({ id, name, role, tenantId, type: 'refresh' }, secret, {
       expiresIn: '30d',
     });
+
+    // Hash token for secure storage in Redis
+    const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+    const redisKey = `refresh_token:${id}:${tokenHash}`;
+    
+    // Store in Redis with a 30-day expiration (in seconds)
+    await redisConnection.set(redisKey, 'true', 'EX', 30 * 24 * 60 * 60);
+
+    return { accessToken, refreshToken };
+  }
+
+  static async revokeAllUserTokens(id: string) {
+    const keys = await redisConnection.keys(`refresh_token:${id}:*`);
+    if (keys.length > 0) {
+      await redisConnection.del(...keys);
+    }
   }
 
   static async registerEmployee(data: any, tenantId: mongoose.Types.ObjectId) {
@@ -37,14 +61,14 @@ export class AuthService {
       requiresPasswordChange: true
     });
 
-    const token = this.generateToken(
+    const { accessToken, refreshToken } = await this.generateTokens(
       employee._id.toString(),
       employee.name,
       employee.role,
       employee.tenantId.toString()
     );
 
-    return { employee, token };
+    return { employee, accessToken, refreshToken };
   }
 
   static async loginEmployee(data: any, tenantId: mongoose.Types.ObjectId) {
@@ -52,13 +76,13 @@ export class AuthService {
 
     const employee = await Employee.findOne({ email, tenantId });
     if (employee && (await bcrypt.compare(password, employee.password || ''))) {
-      const token = this.generateToken(
+      const { accessToken, refreshToken } = await this.generateTokens(
         employee._id.toString(),
         employee.name,
         employee.role,
         employee.tenantId.toString()
       );
-      return { employee, token };
+      return { employee, accessToken, refreshToken };
     }
     
     throw new Error('Invalid email or password');
@@ -78,6 +102,9 @@ export class AuthService {
     employee.requiresPasswordChange = false;
     await employee.save();
 
+    // Revoke all refresh tokens on password change for security
+    await this.revokeAllUserTokens(id);
+
     return true;
   }
 
@@ -92,7 +119,7 @@ export class AuthService {
     await employee.save();
 
     const publicHost = process.env.DOMAIN_NAME || host;
-    const resetUrl = `${protocol}://${publicHost}/api/auth/reset-password/${resetToken}`;
+    const resetUrl = `${protocol}://${publicHost}/api/v1/auth/reset-password/${resetToken}`;
     const message = `You requested a password reset. Please click this link to reset your password: ${resetUrl}`;
     
     await sendNotification('ADMIN', message, 'EMAIL', 'SECURITY', tenantId, { email: employee.email });
@@ -117,6 +144,9 @@ export class AuthService {
     employee.resetPasswordExpire = undefined;
     employee.requiresPasswordChange = false;
     await employee.save();
+
+    // Revoke all refresh tokens on password reset
+    await this.revokeAllUserTokens(employee._id.toString());
 
     return true;
   }

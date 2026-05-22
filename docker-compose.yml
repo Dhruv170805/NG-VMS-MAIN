@@ -48,7 +48,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/api}
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/api/v1}
         - NEXT_PUBLIC_SOCKET_URL=${NEXT_PUBLIC_SOCKET_URL:-/}
     container_name: ngvms_frontend
     environment:
@@ -70,6 +70,8 @@ services:
     restart: unless-stopped
     networks:
       - ngvms_network
+    ports:
+      - "6379:6379"
     volumes:
       - redis_data:/data
 

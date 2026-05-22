@@ -24,9 +24,12 @@ services:
       LICENSE_SECRET: ${LICENSE_SECRET:-default-secret-key-123}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-default-secret-key-123}
     depends_on:
-      - mongo
-      - redis
-      - minio
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     networks:
       - ngvms_network
 
@@ -39,7 +42,8 @@ services:
     environment:
       NODE_ENV: production
     depends_on:
-      - backend
+      backend:
+        condition: service_started
     networks:
       - ngvms_network
 
@@ -60,19 +64,30 @@ services:
       - mongo_data:/data/db
       - ./data/mongo/mongo.key:/data/configdb/mongo.key
     environment:
-      # Auth re-enabled
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-ngvms_root}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
     container_name: ngvms_redis
     restart: unless-stopped
     networks: [ngvms_network]
+    volumes:
+      - redis_data:/data
     command: redis-server --requirepass ${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   minio:
-    image: minio/minio
+    image: minio/minio:latest
     container_name: ngvms_minio
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
@@ -82,9 +97,14 @@ services:
     networks: [ngvms_network]
     volumes:
       - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
 
   smtp_relay:
-    image: maildev/maildev
+    image: maildev/maildev:latest
     container_name: ngvms_smtp
     restart: unless-stopped
     networks: [ngvms_network]
@@ -96,3 +116,4 @@ networks:
 volumes:
   mongo_data:
   minio_data:
+  redis_data:
