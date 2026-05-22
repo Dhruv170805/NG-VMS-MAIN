@@ -60,13 +60,13 @@ ENV NODE_ENV=production \
     # Prevent OTEL from crashing if collector unreachable
     OTEL_SDK_DISABLED=false
 
-EXPOSE 5001
+EXPOSE 5000
 
 # Prometheus metrics port
 EXPOSE 9464
 
 # Healthcheck via /health endpoint
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD ["curl", "-f", "http://localhost:5001/health"]
+  CMD ["curl", "-f", "http://localhost:5000/health"]
 
 CMD ["node", "dist/server.js"]

@@ -303,7 +303,7 @@ app.get('/health', (_req, res) =>
   res.status(200).json({ status: 'healthy', version: '1.0.0', timestamp: new Date().toISOString() })
 );
 
-const PORT = Number(process.env.PORT) || 5001;
+const PORT = Number(process.env.PORT) || 5000;
 
 // Graceful Shutdown
 const shutdown = async () => {

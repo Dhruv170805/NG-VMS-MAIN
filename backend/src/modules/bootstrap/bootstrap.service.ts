@@ -2,6 +2,7 @@ import Tenant from '../../models/Tenant';
 import Employee from '../../models/Employee';
 import Setting from '../../models/Setting';
 import bcryptjs from 'bcryptjs';
+import { SecurityManager } from '../../utils/securityManager';
 
 export class BootstrapService {
   static async checkStatus() {
@@ -39,11 +40,27 @@ export class BootstrapService {
       finalLicenseKey = Buffer.from(trialPayload).toString('base64');
     }
 
+    let resolvedLogo = undefined;
+    if (finalLicenseKey && finalLicenseKey !== 'TRIAL-MODE') {
+      try {
+        const validation = await SecurityManager.getInstance().validateTenantLicense(finalLicenseKey);
+        if (validation.valid && validation.data) {
+          const lData = validation.data as any;
+          const logoFile = lData.features?.branding?.logoFile || lData.logoFile;
+          const logoUrl = lData.features?.branding?.logoUrl || lData.logoUrl;
+          resolvedLogo = logoFile ? `/assets/${logoFile}` : (logoUrl || undefined);
+        }
+      } catch (err) {
+        // Safe fallback
+      }
+    }
+
     // 1. Create Tenant
     const tenant = new Tenant({
       name: companyName,
       subdomain: subdomain || 'default',
-      licenseKey: finalLicenseKey
+      licenseKey: finalLicenseKey,
+      logoUrl: resolvedLogo
     });
     await tenant.save();
 

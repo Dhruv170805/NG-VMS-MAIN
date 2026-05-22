@@ -7,10 +7,10 @@ services:
     container_name: ngvms_backend
     restart: unless-stopped
     ports:
-      - "5001:5001" # Exposed for IIS Proxy
+      - "5000:5000" # Exposed for IIS Proxy
     environment:
       NODE_ENV: production
-      PORT: "5001"
+      PORT: "5000"
       MONGODB_URI: mongodb://${MONGO_ROOT_USER:-ngvms_root}:${MONGO_ROOT_PASSWORD}@mongo:27017/ngvms?replicaSet=rs0&authSource=admin
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       JWT_SECRET: ${JWT_SECRET}

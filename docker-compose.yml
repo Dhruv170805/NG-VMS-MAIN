@@ -168,7 +168,7 @@ services:
       - TLS_EMAIL=${TLS_EMAIL:-admin@localhost}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
-      - ./frontend/public/assets:/usr/share/caddy/assets
+      - ./assets:/usr/share/caddy/assets
       - caddy_data:/data
       - caddy_config:/config
     depends_on:

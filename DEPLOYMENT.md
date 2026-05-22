@@ -97,11 +97,11 @@ Add the following configuration (modify values for production):
 
 # 1. Frontend Configuration (Used during build)
 # Replace 'your-domain.com' or 'your-server-ip' with your actual server address
-NEXT_PUBLIC_API_URL=http://your-server-ip:5001/api
-NEXT_PUBLIC_SOCKET_URL=http://your-server-ip:5001
+NEXT_PUBLIC_API_URL=http://your-server-ip:8080/api
+NEXT_PUBLIC_SOCKET_URL=http://your-server-ip:8080
 
 # 2. Backend Configuration (Used at runtime)
-PORT=5001
+PORT=5000
 NODE_ENV=production
 
 # Database Connections (Docker networking uses service names)
@@ -178,15 +178,15 @@ docker compose logs -f backend
 
 If everything started successfully, your application is now live!
 
-*   **Frontend (UI):** Open your browser and navigate to: `http://your-server-ip:80`
-*   **Backend (API):** Available at: `http://your-server-ip:5001`
+*   **Frontend (UI) & API Gateway:** Open your browser and navigate to: `http://your-server-ip:8080`
+*   **Backend (API):** Available internally at: `http://your-server-ip:5000` (shielded from public traffic by Caddy)
 
 ### Setting up Nginx & SSL (Highly Recommended)
-For a production environment, you should not expose ports 80 and 5001 directly to the public. Instead, set up a Reverse Proxy (like Nginx or Caddy) to route traffic from port 80/443 to your Docker containers and secure it with an SSL certificate using Let's Encrypt (Certbot).
+For a production environment, you should not expose your service ports directly to the public. Caddy handles public traffic on port 80/443 and routes internally to your Docker containers.
 
-*Example Nginx configuration:*
-*   Route `your-domain.com` -> `localhost:80` (Frontend)
-*   Route `api.your-domain.com` -> `localhost:5001` (Backend)
+*Example Nginx configuration (if using Nginx instead of Caddy):*
+*   Route `your-domain.com` -> `localhost:3000` (Frontend)
+*   Route `api.your-domain.com` -> `localhost:5000` (Backend)
 
 *Note: The frontend is pre-built to use relative paths (`/api`). The reverse proxy handles all routing, so you do not need to rebuild the frontend for different domains.*
 
@@ -217,8 +217,8 @@ docker compose -f docker-compose.iis.yml up -d
 
 ### Step 3: Verify Traffic Flow
 -   **Frontend:** Handled by the catch-all rule → `localhost:3000`
--   **API:** Handled by the `/api` rule → `localhost:5001`
--   **Sockets:** Handled by the `/socket.io` rule → `localhost:5001` (WebSocket support must be enabled in ARR).
+-   **API:** Handled by the `/api` rule → `localhost:5000`
+-   **Sockets:** Handled by the `/socket.io` rule → `localhost:5000` (WebSocket support must be enabled in ARR).
 
 ---
 
