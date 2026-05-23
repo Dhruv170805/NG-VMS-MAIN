@@ -227,7 +227,8 @@ export const useAdminDashboard = () => {
     setLoading(prev => ({ ...prev, staff: true }));
     try {
       const token = localStorage.getItem('token');
-      const url = new URL(`${API_CONFIG.ENDPOINTS.EMPLOYEES}`);
+      const base = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
+      const url = new URL(`${API_CONFIG.ENDPOINTS.EMPLOYEES}`, base);
       if (search) url.searchParams.append('search', search);
 
       const res = await fetch(url.toString(), {
@@ -303,7 +304,8 @@ export const useAdminDashboard = () => {
     setLoading(prev => ({ ...prev, blacklist: true }));
     try {
       const token = localStorage.getItem('token');
-      const url = new URL(`${API_CONFIG.ENDPOINTS.BLACKLIST}`);
+      const base = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
+      const url = new URL(`${API_CONFIG.ENDPOINTS.BLACKLIST}`, base);
       if (search) url.searchParams.append('search', search);
 
       const res = await fetch(url.toString(), {
