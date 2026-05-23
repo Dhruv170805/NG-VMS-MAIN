@@ -220,8 +220,8 @@ export const AnalyticsTab: React.FC<Props> = ({
             <option value="pie">Pie Chart</option>
           </select>
         </div>
-        <div className={styles.chart_container} style={{ height: hostChartType === 'bar' ? Math.max(280, analyticsData.hosts.length * 40) : 280 }}>
-          <ResponsiveContainer width="100%" height="100%">
+        <div className={styles.chart_container} style={{ minHeight: 280, height: hostChartType === "bar" ? Math.max(280, analyticsData.hosts.length * 40 + 20) : 280 }}>
+          <ResponsiveContainer width="100%" height={hostChartType === "bar" ? Math.max(280, analyticsData.hosts.length * 40 + 20) : 280}>
             {hostChartType === 'bar' ? (
               <BarChart data={analyticsData.hosts} layout="vertical" margin={{ left: 20, right: 30, top: 10, bottom: 10 }}>
                 <XAxis type="number" hide />
