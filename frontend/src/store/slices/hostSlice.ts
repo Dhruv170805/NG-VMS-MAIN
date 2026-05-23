@@ -1,5 +1,5 @@
 import { StateCreator } from 'zustand';
-import { API_CONFIG } from '../../../app/config';
+import { API_CONFIG, buildUrl } from '../../../app/config';
 import { withRetry } from '../../utils/retryQueue';
 import { Visitor, getTenantId } from '../types';
 
@@ -35,10 +35,11 @@ export const createHostSlice: StateCreator<HostSlice> = (set) => ({
     set({ hostIsLoading: true });
     try {
       const data = await withRetry(async () => {
-        const url = new URL(API_CONFIG.ENDPOINTS.VISITORS);
-        url.searchParams.append('hostId', hostId);
-        if (search) url.searchParams.append('search', search);
-        const res = await fetch(url.toString(), { 
+        const fetchUrl = buildUrl(API_CONFIG.ENDPOINTS.VISITORS, {
+          hostId,
+          ...(search ? { search } : {}),
+        });
+        const res = await fetch(fetchUrl, { 
           headers: { 'x-tenant-id': getTenantId() },
           credentials: 'include' 
         });
@@ -57,14 +58,16 @@ export const createHostSlice: StateCreator<HostSlice> = (set) => ({
     set({ hostIsLoading: true });
     try {
       const data = await withRetry(async () => {
-        const url = new URL(API_CONFIG.ENDPOINTS.VISITORS);
-        url.searchParams.append('hostId', hostId);
-        url.searchParams.append('status', 'GATE_OUT');
-        url.searchParams.append('status', 'REJECTED');
-        url.searchParams.append('page', page.toString());
-        url.searchParams.append('limit', '10');
-        if (search) url.searchParams.append('search', search);
-        const res = await fetch(url.toString(), { 
+        // Build history URL — completed/rejected visits for this host
+        const historyUrl = buildUrl(API_CONFIG.ENDPOINTS.VISITORS, {
+          hostId,
+          page: page.toString(),
+          limit: '10',
+          ...(search ? { search } : {}),
+        });
+        // Append multiple status values manually (buildUrl doesn't support multi-value)
+        const historyFinalUrl = `${historyUrl}&status=GATE_OUT&status=REJECTED`;
+        const res = await fetch(historyFinalUrl, { 
           headers: { 'x-tenant-id': getTenantId() },
           credentials: 'include' 
         });

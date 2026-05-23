@@ -1,5 +1,5 @@
 import { StateCreator } from 'zustand';
-import { API_CONFIG } from '../../../app/config';
+import { API_CONFIG, buildUrl } from '../../../app/config';
 import { withRetry } from '../../utils/retryQueue';
 import { Visitor, getTenantId, safeLocalStorage } from '../types';
 
@@ -29,10 +29,11 @@ export const createVisitorSlice: StateCreator<VisitorSlice> = (set) => ({
     try {
       const data = await withRetry(async () => {
         const token = safeLocalStorage.getItem('token');
-        const url = new URL(API_CONFIG.ENDPOINTS.VISITORS);
-        url.searchParams.append('limit', '500');
-        if (search) url.searchParams.append('search', search);
-        const res = await fetch(url.toString(), {
+        const fetchUrl = buildUrl(API_CONFIG.ENDPOINTS.VISITORS, {
+          limit: '500',
+          ...(search ? { search } : {}),
+        });
+        const res = await fetch(fetchUrl, {
           headers: {
             'x-tenant-id': getTenantId(),
             ...(token ? { Authorization: `Bearer ${token}` } : {})

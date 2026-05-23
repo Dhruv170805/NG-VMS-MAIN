@@ -43,6 +43,27 @@ const getSocketUrl = () => {
 const API_BASE_URL = getApiUrl();
 const SOCKET_URL = getSocketUrl();
 
+/**
+ * Safely constructs a URL with query parameters.
+ * @param path - The API endpoint path (e.g., '/visitors')
+ * @param params - Object containing query parameters
+ */
+export const buildUrl = (path: string, params?: Record<string, string | number | boolean | undefined | null>) => {
+  const baseUrl = API_BASE_URL.replace(/\/+$/, '');
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const url = new URL(`${baseUrl}${cleanPath}`);
+
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        url.searchParams.append(key, String(value));
+      }
+    });
+  }
+
+  return url.toString();
+};
+
 export const API_CONFIG = {
   BASE_URL: API_BASE_URL,
   SOCKET_URL: SOCKET_URL,

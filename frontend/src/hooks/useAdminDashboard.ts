@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { API_CONFIG } from '../../app/config';
+import { API_CONFIG, buildUrl } from '../../app/config';
 import { useTenant } from '../../app/TenantContext';
 import { useSocketStore } from '../store';
 import { VisitorListResponseSchema } from '../schemas/visitorSchema';
@@ -138,12 +138,12 @@ export const useAdminDashboard = () => {
         router.push('/login');
         return;
       }
-      const base = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
-      const url = new URL(`${API_CONFIG.ENDPOINTS.VISITORS}`, base);
-      url.searchParams.append('limit', '500');
-      if (search) url.searchParams.append('search', search);
+      const fetchUrl = buildUrl(API_CONFIG.ENDPOINTS.VISITORS, {
+        limit: '500',
+        ...(search ? { search } : {}),
+      });
 
-      const res = await fetch(url.toString(), {
+      const res = await fetch(fetchUrl, {
         headers: { 
           'Authorization': `Bearer ${token}`,
           'x-tenant-id': getTenantId()
@@ -227,11 +227,11 @@ export const useAdminDashboard = () => {
     setLoading(prev => ({ ...prev, staff: true }));
     try {
       const token = localStorage.getItem('token');
-      const base = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
-      const url = new URL(`${API_CONFIG.ENDPOINTS.EMPLOYEES}`, base);
-      if (search) url.searchParams.append('search', search);
+      const fetchUrl = buildUrl(API_CONFIG.ENDPOINTS.EMPLOYEES, {
+        ...(search ? { search } : {}),
+      });
 
-      const res = await fetch(url.toString(), {
+      const res = await fetch(fetchUrl, {
         headers: { 
           'Authorization': `Bearer ${token}`,
           'x-tenant-id': getTenantId()
@@ -304,11 +304,11 @@ export const useAdminDashboard = () => {
     setLoading(prev => ({ ...prev, blacklist: true }));
     try {
       const token = localStorage.getItem('token');
-      const base = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
-      const url = new URL(`${API_CONFIG.ENDPOINTS.BLACKLIST}`, base);
-      if (search) url.searchParams.append('search', search);
+      const fetchUrl = buildUrl(API_CONFIG.ENDPOINTS.BLACKLIST, {
+        ...(search ? { search } : {}),
+      });
 
-      const res = await fetch(url.toString(), {
+      const res = await fetch(fetchUrl, {
         headers: { 
           'Authorization': `Bearer ${token}`,
           'x-tenant-id': getTenantId()

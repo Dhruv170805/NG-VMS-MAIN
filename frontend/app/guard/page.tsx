@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Html5Qrcode } from 'html5-qrcode';
 import Webcam from 'react-webcam';
 import { LogOut, XCircle, Menu } from 'lucide-react';
-import { API_CONFIG } from '../config';
+import { API_CONFIG, buildUrl } from '../config';
 import { useTenant } from '../TenantContext';
 
 // Global Store
@@ -125,12 +125,12 @@ export default function GuardTerminal() {
     try {
       setIsLoading(true);
       const token = localStorage.getItem('token');
-      const base = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
-      const url = new URL(`${API_CONFIG.ENDPOINTS.VISITORS}`, base);
-      url.searchParams.append('limit', '50');
-      if (search) url.searchParams.append('search', search);
+      const fetchUrl = buildUrl(API_CONFIG.ENDPOINTS.VISITORS, {
+        limit: '50',
+        ...(search ? { search } : {}),
+      });
 
-      const res = await fetch(url.toString(), { 
+      const res = await fetch(fetchUrl, { 
         headers: { 
           'Authorization': `Bearer ${token}`,
           'x-tenant-id': getTenantId()
@@ -351,11 +351,11 @@ export default function GuardTerminal() {
   const handleAutoFetchLatest = async (visitorId: string) => {
     setIsUploadingAadhaar(true);
     try {
-      const base = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
-      const url = new URL(`${API_CONFIG.BASE_URL}/aadhaar/latest`, base);
-      if (guardConfig.folderName) url.searchParams.append('folder', guardConfig.folderName);
+      const fetchUrl = buildUrl(`${API_CONFIG.BASE_URL}/aadhaar/latest`, {
+        ...(guardConfig.folderName ? { folder: guardConfig.folderName } : {}),
+      });
       
-      const res = await fetch(url.toString(), {
+      const res = await fetch(fetchUrl, {
         headers: {
           'x-tenant-id': getTenantId()
         }
