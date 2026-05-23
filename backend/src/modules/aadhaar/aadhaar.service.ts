@@ -6,7 +6,7 @@ import os from 'os';
 import { PolicyEngine } from '../../utils/policyEngine';
 import { SecurityManager } from '../../utils/securityManager';
 
-const pdfjs = require('pdfjs-dist/legacy/build/pdf.js');
+const pdfjsPromise = import('pdfjs-dist/legacy/build/pdf.mjs');
 
 export class AadhaarService {
   static async validateAadhaarLicense(tenantId: mongoose.Types.ObjectId) {
@@ -17,11 +17,11 @@ export class AadhaarService {
   }
 
   static async extractAadhaarText(fileBuffer: Buffer, password?: string) {
+    const pdfjs = await pdfjsPromise;
     const data = new Uint8Array(fileBuffer);
     const loadingTask = pdfjs.getDocument({
       data,
       password,
-      disableWorker: true,
       verbosity: 0
     });
 
