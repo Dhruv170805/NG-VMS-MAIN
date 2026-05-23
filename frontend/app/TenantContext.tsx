@@ -25,6 +25,10 @@ interface TenantContextType {
 
 const TenantContext = createContext<TenantContextType | undefined>(undefined);
 
+const isIpAddress = (hostname: string) => {
+  return /^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostname) || hostname.includes(':');
+};
+
 export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [tenant, setTenant] = useState<TenantConfig | null>(null);
   const [loading, setLoading] = useState(true);
@@ -36,6 +40,11 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     // Ignore hosting provider domains and use demo tenant
     if (hostname.includes('.onrender.com') || hostname.includes('.vercel.app')) {
+      return 'demo';
+    }
+
+    // Accessing the site via an IP address should use the default tenant
+    if (isIpAddress(hostname)) {
       return 'demo';
     }
 

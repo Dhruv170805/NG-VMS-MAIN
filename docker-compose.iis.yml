@@ -58,15 +58,23 @@ services:
       - /bin/bash
       - -c
       - |
+        if [ -d /data/configdb/mongo.key ]; then
+          rm -rf /data/configdb/mongo.key
+        fi
+        if [ ! -f /data/configdb/mongo.key ]; then
+          openssl rand -base64 756 > /data/configdb/mongo.key
+          chmod 400 /data/configdb/mongo.key
+          chown 999:999 /data/configdb/mongo.key
+        fi
         cp /data/configdb/mongo.key /tmp/mongo.key
         chmod 400 /tmp/mongo.key
         chown 999:999 /tmp/mongo.key
-        exec mongod --replSet rs0 --bind_ip_all --auth --keyFile /tmp/mongo.key
+         exec /usr/local/bin/docker-entrypoint.sh mongod --replSet rs0 --bind_ip_all --auth --keyFile /tmp/mongo.key
     restart: unless-stopped
     networks: [ngvms_network]
     volumes:
       - mongo_data:/data/db
-      - ./data/mongo/mongo.key:/data/configdb/mongo.key
+     - ./data/mongo:/data/configdb
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-ngvms_root}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}

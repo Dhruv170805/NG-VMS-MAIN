@@ -98,7 +98,7 @@ const tenantKeyGenerator = (req: any) => {
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 1000,
-  validate: { ip: false },
+  validate: { keyGeneratorIpFallback: false },
   skip: () => process.env.NODE_ENV === 'test',
   message: { error: 'Too many requests from this tenant, please try again after 15 minutes' },
   store: new RedisStore({
@@ -111,7 +111,7 @@ const limiter = rateLimit({
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
-  validate: { ip: false },
+  validate: { keyGeneratorIpFallback: false },
   skip: () => process.env.NODE_ENV === 'test',
   message: { error: 'Too many login attempts, please try again after 15 minutes' },
   store: new RedisStore({
