@@ -50,7 +50,7 @@ export const PassCard: React.FC<PassCardProps> = ({
     return null;
   };
 
-  const FrontSide = () => (
+  const renderFrontSide = () => (
     <div className={styles.vms_card_studio} style={{ margin: 0 }}>
       {getStatusOverlay()}
       <div className={styles.card_top}>
@@ -105,7 +105,7 @@ export const PassCard: React.FC<PassCardProps> = ({
     </div>
   );
 
-  const BackSide = () => (
+  const renderBackSide = () => (
     <div className={`${styles.vms_card_studio} ${styles.card_back_v2}`} style={{ margin: 0 }}>
       <div className={styles.card_top_back}>
         <div style={{ color: '#fff', fontWeight: 900, fontSize: '13px', letterSpacing: '1px', textTransform: 'uppercase' }}>rule</div>
@@ -133,8 +133,8 @@ export const PassCard: React.FC<PassCardProps> = ({
   if (sideBySide) {
     return (
       <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
-        <FrontSide />
-        <BackSide />
+        {renderFrontSide()}
+        {renderBackSide()}
       </div>
     );
   }
@@ -149,12 +149,12 @@ export const PassCard: React.FC<PassCardProps> = ({
       >
         {/* FRONT SIDE */}
         <div style={{ position: 'absolute', width: '100%', height: '100%', backfaceVisibility: 'hidden', zIndex: isFlipped ? 0 : 1 }}>
-          <FrontSide />
+          {renderFrontSide()}
         </div>
 
         {/* BACK SIDE */}
         <div style={{ position: 'absolute', width: '100%', height: '100%', backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', zIndex: isFlipped ? 1 : 0 }}>
-          <BackSide />
+          {renderBackSide()}
         </div>
       </motion.div>
       <div style={{ textAlign: 'center', marginTop: '20px', color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 600 }}>

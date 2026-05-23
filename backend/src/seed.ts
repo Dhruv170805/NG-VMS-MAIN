@@ -22,6 +22,8 @@ const seedUsers = async () => {
     // Create Default Tenant
     // License features: Email: true, SMS: false, Aadhaar: true
     const license = Buffer.from(JSON.stringify({
+      companyCode: 'demo',
+      companyName: 'VMS Enterprise',
       features: { email: true, sms: false, aadhaar: true },
       expiresAt: '2027-12-31',
       status: 'ACTIVE'
@@ -64,7 +66,8 @@ const seedUsers = async () => {
         password: await bcrypt.hash('Welcome@123', salt),
         department: 'Product Design',
         role: 'STAFF',
-        isAvailable: true
+        isAvailable: true,
+        isHost: true
       }
     ];
 

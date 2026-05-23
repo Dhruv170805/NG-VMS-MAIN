@@ -64,3 +64,15 @@ cypress/screenshots/
 
 ngvms-enterprise-vV1.tar.gz
 ngvms-enterprise-vV1
+
+# Playwright & Testing Artifacts
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
+
+# Agent & Debug Notes
+AGENT_NOTES.md
+*AGENT_NOTES.md
+*agent_notes.md
+

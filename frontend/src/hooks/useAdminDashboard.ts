@@ -138,7 +138,8 @@ export const useAdminDashboard = () => {
         router.push('/login');
         return;
       }
-      const url = new URL(`${API_CONFIG.ENDPOINTS.VISITORS}`);
+      const base = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
+      const url = new URL(`${API_CONFIG.ENDPOINTS.VISITORS}`, base);
       url.searchParams.append('limit', '500');
       if (search) url.searchParams.append('search', search);
 

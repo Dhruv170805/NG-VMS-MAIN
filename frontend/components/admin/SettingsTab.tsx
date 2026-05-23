@@ -202,7 +202,7 @@ export const SettingsTab: React.FC<Props> = ({
             >
               <div style={{ background: '#1c1c1e', color: '#32d74b', padding: '20px', borderRadius: '12px', fontFamily: 'monospace', fontSize: '0.8rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                  <span style={{ color: '#0a84ff' }}>// NGS License Decryption Inspector</span>
+                  <span style={{ color: '#0a84ff' }}>{"// NGS License Decryption Inspector"}</span>
                   <button 
                     style={{ background: 'transparent', border: 'none', color: '#636366', cursor: 'pointer' }}
                     onClick={async () => {

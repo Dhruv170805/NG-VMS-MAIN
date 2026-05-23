@@ -210,6 +210,8 @@ const Home = () => {
                       size={200}
                       level="H"
                       includeMargin={false}
+                      title="Registration QR Code"
+                      aria-label="Registration QR Code"
                     />
                   ) : (
                     <Loader2 className="animate-spin" size={40} />
@@ -243,6 +245,7 @@ const Home = () => {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   style={{ height: '54px', fontSize: '1rem', textAlign: 'center' }}
+                  aria-label="Phone Number to Track Status"
                   required
                 />
                 <motion.button 
@@ -302,8 +305,9 @@ const Home = () => {
 
               <form onSubmit={handleLogin} className={styles.login_form}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 800, opacity: 0.6 }}>EMAIL</label>
+                  <label htmlFor="login-email" style={{ fontSize: '0.75rem', fontWeight: 800, opacity: 0.6 }}>EMAIL</label>
                   <motion.input 
+                    id="login-email"
                     whileFocus={{ scale: 1.01, boxShadow: "0 0 20px rgba(0, 122, 255, 0.15)" }}
                     type="email" 
                     className="glass-input" 
@@ -315,8 +319,9 @@ const Home = () => {
                   />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 800, opacity: 0.6 }}>PASSWORD</label>
+                  <label htmlFor="login-password" style={{ fontSize: '0.75rem', fontWeight: 800, opacity: 0.6 }}>PASSWORD</label>
                   <motion.input 
+                    id="login-password"
                     whileFocus={{ scale: 1.01, boxShadow: "0 0 20px rgba(0, 122, 255, 0.15)" }}
                     type="password" 
                     className="glass-input" 

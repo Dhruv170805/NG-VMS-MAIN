@@ -108,7 +108,7 @@ export const VisitorDossier: React.FC<VisitorDossierProps> = ({
       {visitor.hostRemark && (
         <div style={{ marginTop: '16px', padding: '12px', background: 'rgba(0,122,255,0.05)', borderRadius: '12px', borderLeft: '4px solid var(--apple-blue)' }}>
           <div style={{ fontSize: '0.6rem', fontWeight: 950, color: 'var(--apple-blue)', textTransform: 'uppercase', marginBottom: '4px' }}>Host Instructions</div>
-          <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>"{visitor.hostRemark}"</div>
+          <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>&quot;{visitor.hostRemark}&quot;</div>
         </div>
       )}
 

@@ -36,6 +36,24 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const getSubdomain = React.useCallback(() => {
     if (typeof window === 'undefined') return 'demo';
+    
+    // --- IIS/Local Network Dynamic Tenant Resolution ---
+    // In local private network deployments (like IIS), multiple PCs access the app via IP addresses
+    // (e.g. http://192.168.1.50) making subdomain DNS resolution impossible without DNS servers.
+    // We allow defining/persisting the tenant using a query parameter (e.g. ?tenant=client_name or ?t=client_name).
+    const urlParams = new URLSearchParams(window.location.search);
+    const queryTenant = urlParams.get('tenant') || urlParams.get('t');
+    
+    if (queryTenant) {
+      localStorage.setItem('vms_tenant_id', queryTenant);
+      return queryTenant;
+    }
+    
+    const storedTenant = localStorage.getItem('vms_tenant_id');
+    if (storedTenant) {
+      return storedTenant;
+    }
+
     const hostname = window.location.hostname;
 
     // Ignore hosting provider domains and use demo tenant

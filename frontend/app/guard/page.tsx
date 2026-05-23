@@ -125,7 +125,8 @@ export default function GuardTerminal() {
     try {
       setIsLoading(true);
       const token = localStorage.getItem('token');
-      const url = new URL(`${API_CONFIG.ENDPOINTS.VISITORS}`);
+      const base = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
+      const url = new URL(`${API_CONFIG.ENDPOINTS.VISITORS}`, base);
       url.searchParams.append('limit', '50');
       if (search) url.searchParams.append('search', search);
 
@@ -350,7 +351,8 @@ export default function GuardTerminal() {
   const handleAutoFetchLatest = async (visitorId: string) => {
     setIsUploadingAadhaar(true);
     try {
-      const url = new URL(`${API_CONFIG.BASE_URL}/aadhaar/latest`);
+      const base = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
+      const url = new URL(`${API_CONFIG.BASE_URL}/aadhaar/latest`, base);
       if (guardConfig.folderName) url.searchParams.append('folder', guardConfig.folderName);
       
       const res = await fetch(url.toString(), {

@@ -37,16 +37,6 @@ const VisitorRegistration: React.FC = () => {
     consentGiven: false
   });
 
-  // Update default ID type if Aadhaar is enabled
-  useEffect(() => {
-    if (tenant?.features.aadhaar) {
-      setFormData(prev => ({ ...prev, idProofType: 'Aadhaar Card' }));
-      setCaptureMode('VISITOR');
-    } else {
-      setFormData(prev => ({ ...prev, idProofType: 'PAN' }));
-    }
-  }, [tenant]);
-  
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [isOCRRunning, setIsOCRRunning] = useState(false);
   const [modelsLoaded, setModelsLoaded] = useState(false);
@@ -56,6 +46,16 @@ const VisitorRegistration: React.FC = () => {
   const [registeredId, setRegisteredId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [greeting, setGreeting] = useState('Welcome');
+
+  // Update default ID type if Aadhaar is enabled
+  useEffect(() => {
+    if (tenant?.features.aadhaar) {
+      setFormData(prev => ({ ...prev, idProofType: 'Aadhaar Card' }));
+      setCaptureMode('VISITOR');
+    } else {
+      setFormData(prev => ({ ...prev, idProofType: 'PAN' }));
+    }
+  }, [tenant]);
   
   const webcamRef = useRef<Webcam>(null);
   const lookupRef = useRef<NodeJS.Timeout | null>(null);
@@ -398,6 +398,7 @@ const VisitorRegistration: React.FC = () => {
                         className="glass-input" 
                         placeholder="Phone Number" 
                         value={formData.phone} 
+                        aria-label="Phone Number"
                         onChange={e => {
                           const val = e.target.value;
                           setFormData(prev => ({...prev, phone: val}));
@@ -409,9 +410,9 @@ const VisitorRegistration: React.FC = () => {
                       />
                       {isLookingUp && <RefreshCw size={16} className="spinning" style={{ position: 'absolute', right: 16 }} />}
                     </div>
-                    <div className="reg_input_wrapper"><User size={18} /><input className="glass-input" placeholder="Full Name" value={formData.name} onChange={e => setFormData(prev => ({...prev, name: e.target.value}))} /></div>
-                    <div className="reg_input_wrapper"><Mail size={18} /><input className="glass-input" placeholder="Email Address" value={formData.email} onChange={e => setFormData(prev => ({...prev, email: e.target.value}))} /></div>
-                    <div className="reg_input_wrapper"><Building size={18} /><input className="glass-input" placeholder="Company Name" value={formData.company} onChange={e => setFormData(prev => ({...prev, company: e.target.value}))} /></div>
+                    <div className="reg_input_wrapper"><User size={18} /><input className="glass-input" placeholder="Full Name" value={formData.name} aria-label="Full Name" onChange={e => setFormData(prev => ({...prev, name: e.target.value}))} /></div>
+                    <div className="reg_input_wrapper"><Mail size={18} /><input className="glass-input" placeholder="Email Address" value={formData.email} aria-label="Email Address" onChange={e => setFormData(prev => ({...prev, email: e.target.value}))} /></div>
+                    <div className="reg_input_wrapper"><Building size={18} /><input className="glass-input" placeholder="Company Name" value={formData.company} aria-label="Company Name" onChange={e => setFormData(prev => ({...prev, company: e.target.value}))} /></div>
                   </div>
                 </motion.div>
 
@@ -425,25 +426,43 @@ const VisitorRegistration: React.FC = () => {
                     <p>Help us prepare for your arrival.</p>
                   </div>
                   <div className="reg_grid">
-                    <div className="reg_field"><label><Target size={12} /> PURPOSE</label><select className="glass-input" value={formData.purpose} onChange={e => setFormData(prev => ({...prev, purpose: e.target.value}))}><option value="">Select Purpose...</option>{systemConfig.purposes.map(p => <option key={p} value={p}>{p}</option>)}</select></div>
-                    <div className="reg_field"><label><User size={12} /> MEET HOST</label><select className="glass-input" value={formData.hostId} onChange={e => { const host = systemConfig.hosts.find(h => h._id === e.target.value); setFormData(prev => ({...prev, hostId: e.target.value, hostName: host?.name || ''})); }}>{systemConfig.hosts.map(h => <option key={h._id} value={h._id}>{h.name} ({h.department})</option>)}</select></div>
-                    
                     <div className="reg_field">
-                      <label><Calendar size={12} /> FROM DATE</label>
-                      <div className="reg_input_wrapper"><Calendar size={16} /><input type="date" className="glass-input" value={formData.startDate} onChange={e => setFormData(prev => ({...prev, startDate: e.target.value}))} /></div>
+                      <label htmlFor="reg-purpose"><Target size={12} /> PURPOSE</label>
+                      <select id="reg-purpose" className="glass-input" value={formData.purpose} onChange={e => setFormData(prev => ({...prev, purpose: e.target.value}))}>
+                        <option value="">Select Purpose...</option>
+                        {systemConfig.purposes.map(p => <option key={p} value={p}>{p}</option>)}
+                      </select>
                     </div>
                     <div className="reg_field">
-                      <label><Calendar size={12} /> TO DATE</label>
-                      <div className="reg_input_wrapper"><Calendar size={16} /><input type="date" className="glass-input" value={formData.endDate} onChange={e => setFormData(prev => ({...prev, endDate: e.target.value}))} /></div>
+                      <label htmlFor="reg-host"><User size={12} /> MEET HOST</label>
+                      <select id="reg-host" className="glass-input" value={formData.hostId} onChange={e => { const host = systemConfig.hosts.find(h => h._id === e.target.value); setFormData(prev => ({...prev, hostId: e.target.value, hostName: host?.name || ''})); }}>
+                        {systemConfig.hosts.map(h => <option key={h._id} value={h._id}>{h.name} ({h.department})</option>)}
+                      </select>
+                    </div>
+                    
+                    <div className="reg_field">
+                      <label htmlFor="reg-start-date"><Calendar size={12} /> FROM DATE</label>
+                      <div className="reg_input_wrapper"><Calendar size={16} /><input id="reg-start-date" type="date" className="glass-input" value={formData.startDate} onChange={e => setFormData(prev => ({...prev, startDate: e.target.value}))} /></div>
+                    </div>
+                    <div className="reg_field">
+                      <label htmlFor="reg-end-date"><Calendar size={12} /> TO DATE</label>
+                      <div className="reg_input_wrapper"><Calendar size={16} /><input id="reg-end-date" type="date" className="glass-input" value={formData.endDate} onChange={e => setFormData(prev => ({...prev, endDate: e.target.value}))} /></div>
                     </div>
 
                     <div className="reg_field">
-                      <label><Clock size={12} /> ARRIVAL TIME</label>
-                      <div className="reg_input_wrapper"><Clock size={16} /><input type="time" className="glass-input" value={formData.visitTime} onChange={e => setFormData(prev => ({...prev, visitTime: e.target.value}))} /></div>
+                      <label htmlFor="reg-visit-time"><Clock size={12} /> ARRIVAL TIME</label>
+                      <div className="reg_input_wrapper"><Clock size={16} /><input id="reg-visit-time" type="time" className="glass-input" value={formData.visitTime} onChange={e => setFormData(prev => ({...prev, visitTime: e.target.value}))} /></div>
                     </div>
                     <div className="reg_field">
-                      <label><Clock size={12} /> DURATION</label>
-                      <select className="glass-input" value={formData.requestedDuration} onChange={e => setFormData(prev => ({...prev, requestedDuration: e.target.value}))}><option value="1H">1 Hour</option><option value="2H">2 Hours</option><option value="3H">3 Hours</option><option value="5H">5 Hours</option><option value="FULL_DAY">Full Day</option><option value="MULTIPLE_DAYS">Multiple Days</option></select>
+                      <label htmlFor="reg-duration"><Clock size={12} /> DURATION</label>
+                      <select id="reg-duration" className="glass-input" value={formData.requestedDuration} onChange={e => setFormData(prev => ({...prev, requestedDuration: e.target.value}))}>
+                        <option value="1H">1 Hour</option>
+                        <option value="2H">2 Hours</option>
+                        <option value="3H">3 Hours</option>
+                        <option value="5H">5 Hours</option>
+                        <option value="FULL_DAY">Full Day</option>
+                        <option value="MULTIPLE_DAYS">Multiple Days</option>
+                      </select>
                     </div>
                   </div>
                 </motion.div>
@@ -460,8 +479,9 @@ const VisitorRegistration: React.FC = () => {
 
                   <div className="reg_grid" style={{ marginBottom: '24px' }}>
                     <div className="reg_field">
-                      <label><ShieldCheck size={12} /> ID TYPE</label>
+                      <label htmlFor="reg-id-type"><ShieldCheck size={12} /> ID TYPE</label>
                       <select 
+                        id="reg-id-type"
                         className="glass-input" 
                         value={formData.idProofType} 
                         onChange={e => setFormData(prev => ({...prev, idProofType: e.target.value, idProofNumber: ''}))}
@@ -477,7 +497,10 @@ const VisitorRegistration: React.FC = () => {
                         )}
                       </select>
                     </div>
-                    <div className="reg_field"><label><ShieldCheck size={12} /> ID NUMBER</label><input className="glass-input" placeholder="Enter ID Number" value={formData.idProofNumber} onChange={e => setFormData(prev => ({...prev, idProofNumber: e.target.value}))} /></div>
+                    <div className="reg_field">
+                      <label htmlFor="reg-id-number"><ShieldCheck size={12} /> ID NUMBER</label>
+                      <input id="reg-id-number" className="glass-input" placeholder="Enter ID Number" value={formData.idProofNumber} onChange={e => setFormData(prev => ({...prev, idProofNumber: e.target.value}))} />
+                    </div>
                   </div>
 
                   <div className="reg_capture_grid" style={{ marginBottom: '24px' }}>

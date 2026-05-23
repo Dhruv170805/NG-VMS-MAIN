@@ -106,7 +106,9 @@ const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 1000,
   validate: { keyGeneratorIpFallback: false },
-  skip: () => process.env.NODE_ENV === 'test',
+  // Skip rate limiting in testing environments or when explicitly disabled via environment
+  // variables (e.g. to allow parallel Playwright workers to run without hitting 429 errors).
+  skip: () => process.env.NODE_ENV === 'test' || process.env.DISABLE_RATE_LIMITS === 'true',
   message: { error: 'Too many requests from this tenant, please try again after 15 minutes' },
   store: new RedisStore({
     // @ts-expect-error - ioredis sendCommand type is compatible
@@ -119,7 +121,8 @@ const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
   validate: { keyGeneratorIpFallback: false },
-  skip: () => process.env.NODE_ENV === 'test',
+  // Skip authentication rate limits for automated test runs or explicit bypass
+  skip: () => process.env.NODE_ENV === 'test' || process.env.DISABLE_RATE_LIMITS === 'true',
   message: { error: 'Too many login attempts, please try again after 15 minutes' },
   store: new RedisStore({
     // @ts-expect-error - ioredis sendCommand type is compatible
