@@ -3,20 +3,59 @@
  * ─────────────────────────────────────────────────────────────
  * Handles 3 deployment environments automatically:
  *   1. .env override  → NEXT_PUBLIC_API_URL (highest priority)
- *   2. Local dev      → any localhost port → backend on :5000
+ *   2. Local dev      → any localhost/LAN port → backend on configured port
  *   3. Production/IIS → same origin as frontend (reverse proxy)
  * ─────────────────────────────────────────────────────────────
  */
 
 const isBrowser = typeof window !== 'undefined';
 
+// ── Configuration Variables (Configurable via env vars, with defaults) ──────
+const BACKEND_PORT = process.env.NEXT_PUBLIC_BACKEND_PORT || '5000';
+const API_PATH = process.env.NEXT_PUBLIC_API_PATH || '/api/v1';
+
+/**
+ * Checks if the hostname represents a local development host or LAN IP.
+ */
+const isLocalHostname = (hostname: string): boolean => {
+  // Loopback and standard dev hosts
+  if (
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname === '::1' ||
+    hostname === '[::1]'
+  ) {
+    return true;
+  }
+
+  // Local/Private domain extensions
+  if (
+    hostname.endsWith('.local') ||
+    hostname.endsWith('.lan') ||
+    hostname.endsWith('.home') ||
+    hostname.endsWith('.internal')
+  ) {
+    return true;
+  }
+
+  // IPv4 Private Networks:
+  // 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
+  const ipv4Pattern = /^(?:10|192\.168|172\.(?:1[6-9]|2\d|3[01]))\.\d+\.\d+\.\d+$/;
+  if (ipv4Pattern.test(hostname)) {
+    return true;
+  }
+
+  // IPv6 Link-Local / Unique Local (ULA)
+  const ipv6Pattern = /^(?:[fF][eE]80|[fF][cCdD][0-9a-fA-F]{2}):/;
+  if (ipv6Pattern.test(hostname)) {
+    return true;
+  }
+
+  return false;
+};
+
 /**
  * Returns the base API URL. Safe to call during SSR and in browser.
- *
- * Priority:
- *  1. NEXT_PUBLIC_API_URL env var (set at build time or in .env)
- *  2. Localhost / 127.0.0.1 (any port) → always use backend on :5000
- *  3. LAN/Production (IIS, Caddy) → same origin, backend is reverse-proxied
  */
 const getApiUrl = (): string => {
   // ── 1. Explicit env override (Docker, CI, cloud deployments) ──────────────
@@ -26,31 +65,19 @@ const getApiUrl = (): string => {
 
   // ── 2. SSR fallback (Next.js server render — no window) ───────────────────
   if (!isBrowser) {
-    return 'http://localhost:5000/api/v1';
+    return `http://localhost:${BACKEND_PORT}${API_PATH}`;
   }
 
   const { hostname } = window.location;
-  const isLocal = 
-    hostname === 'localhost' || 
-    hostname === '127.0.0.1' || 
-    hostname === '::1' || 
-    hostname === '[::1]' || 
-    hostname.startsWith('192.168.') || 
-    hostname.startsWith('10.') || 
-    hostname.startsWith('172.') ||
-    hostname.endsWith('.local');
 
   // ── 3. Local development (any port on localhost or LAN) ────────────────────
-  // The backend always runs on :5000 locally regardless of the frontend port
-  // (which Next.js may assign as :3000, :1716, :3001, etc.)
-  if (isLocal) {
-    return `http://${hostname}:5000/api/v1`;
+  if (isLocalHostname(hostname)) {
+    return `http://${hostname}:${BACKEND_PORT}${API_PATH}`;
   }
 
   // ── 4. Production / LAN / IIS deployment ──────────────────────────────────
   // Backend is reverse-proxied through the same host (IIS ARR / Caddy / Nginx)
-  // e.g. http://192.168.1.50/api/v1 or https://vms.company.local/api/v1
-  return `${window.location.origin}/api/v1`;
+  return `${window.location.origin}${API_PATH}`;
 };
 
 /**
@@ -64,31 +91,22 @@ const getSocketUrl = (): string => {
 
   // ── 2. SSR fallback ───────────────────────────────────────────────────────
   if (!isBrowser) {
-    return 'http://localhost:5000';
+    return `http://localhost:${BACKEND_PORT}`;
   }
 
   const { hostname } = window.location;
-  const isLocal = 
-    hostname === 'localhost' || 
-    hostname === '127.0.0.1' || 
-    hostname === '::1' || 
-    hostname === '[::1]' || 
-    hostname.startsWith('192.168.') || 
-    hostname.startsWith('10.') || 
-    hostname.startsWith('172.') ||
-    hostname.endsWith('.local');
 
   // ── 3. Local development ───────────────────────────────────────────────────
-  if (isLocal) {
-    return `http://${hostname}:5000`;
+  if (isLocalHostname(hostname)) {
+    return `http://${hostname}:${BACKEND_PORT}`;
   }
 
   // ── 4. Production / LAN ───────────────────────────────────────────────────
   return window.location.origin;
 };
 
-// Resolved at module load time. Since getApiUrl() always returns an absolute
-// URL, API_BASE_URL will NEVER be undefined or relative.
+// Resolved at module load time. Since getApiUrl() always returns a valid
+// URL base, API_BASE_URL will NEVER be undefined.
 const API_BASE_URL = getApiUrl();
 const SOCKET_URL = getSocketUrl();
 
@@ -100,7 +118,7 @@ const getBasePathname = (): string => {
     try {
       return new URL(API_BASE_URL).pathname.replace(/\/+$/, '');
     } catch (e) {
-      return '/api/v1';
+      return API_PATH;
     }
   }
   return API_BASE_URL.replace(/\/+$/, '');
@@ -144,7 +162,7 @@ export const buildUrl = (
     if (path.startsWith('http://') || path.startsWith('https://')) {
       resolvedUrl = path;
     } else {
-      const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5000';
+      const origin = typeof window !== 'undefined' ? window.location.origin : `http://localhost:${BACKEND_PORT}`;
       resolvedUrl = `${origin.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
     }
   }
@@ -164,13 +182,13 @@ export const buildUrl = (
 
 // ── Exported configuration object ────────────────────────────────────────────
 export const API_CONFIG = {
-  /** Absolute API base URL (e.g. http://localhost:5000/api/v1) */
+  /** Base API base URL (e.g. http://localhost:5000/api/v1) */
   BASE_URL: API_BASE_URL,
 
   /** WebSocket server URL */
   SOCKET_URL: SOCKET_URL,
 
-  /** Pre-built endpoint strings — always absolute, ready to use in fetch() */
+  /** Pre-built endpoint strings — resolved base paths, ready to use in fetch() */
   ENDPOINTS: {
     VISITORS:  `${API_BASE_URL}/visitors`,
     SYSTEM:    `${API_BASE_URL}/system`,
