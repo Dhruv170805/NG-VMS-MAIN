@@ -74,7 +74,7 @@ services:
     networks: [ngvms_network]
     volumes:
       - mongo_data:/data/db
-     - ./data/mongo:/data/configdb
+      - ./data/mongo:/data/configdb
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-ngvms_root}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}

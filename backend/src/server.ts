@@ -74,6 +74,13 @@ const corsOptions: cors.CorsOptions = {
     } else {
       try {
         const hostname = new URL(origin).hostname;
+        const isIp = /^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostname) || hostname.includes(':') || hostname === 'localhost' || hostname === '127.0.0.1';
+        
+        if (isIp) {
+          callback(null, true);
+          return;
+        }
+        
         if (hostname === baseDomain || hostname.endsWith('.' + baseDomain)) {
           callback(null, true);
           return;
@@ -124,8 +131,24 @@ const authLimiter = rateLimit({
 const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.has(origin)) callback(null, true);
-      else callback(new Error('CORS: Origin not allowed'));
+      if (!origin || allowedOrigins.has(origin)) {
+        callback(null, true);
+        return;
+      }
+      try {
+        const hostname = new URL(origin).hostname;
+        const isIp = /^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostname) || hostname.includes(':') || hostname === 'localhost' || hostname === '127.0.0.1';
+        
+        if (isIp) {
+          callback(null, true);
+          return;
+        }
+        if (hostname === baseDomain || hostname.endsWith('.' + baseDomain)) {
+          callback(null, true);
+          return;
+        }
+      } catch (err) {}
+      callback(new Error('CORS: Origin not allowed'));
     },
     methods: ['GET', 'POST'],
     credentials: true,
