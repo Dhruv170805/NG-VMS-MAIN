@@ -125,3 +125,7 @@ Ensure that the environment variables in your `.env` file are set up appropriate
 ### 2. WebSocket Connection Failures (Sockets disconnect / Fall back to polling)
 * **IIS WebSocket Module**: Confirm "WebSockets Protocol" is enabled under Windows Server Roles.
 * **ARR WebSockets**: Confirm the `<webSocket enabled="true" />` rule is present in the `web.config` file.
+
+### 3. Webcam / Camera Capturing Blocked on Remote Client PCs
+* **Reason**: Modern web browsers enforce strict security invariants that block camera access (`navigator.mediaDevices.getUserMedia`) on non-secure origins. Non-secure origins include any HTTP address that is not `localhost` or `127.0.0.1`.
+* **Fix**: Ensure that the IIS website is bound to a valid HTTPS certificate (such as a local Active Directory Certificate Authority certificate, standard domain SSL, or a self-signed certificate) so that other computers on the LAN access the VMS securely via `https://<server-ip>`. Camera capture will immediately initialize once the origin is secure.
