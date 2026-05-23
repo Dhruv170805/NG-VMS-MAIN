@@ -4,7 +4,7 @@ import Setting from '../../models/Setting';
 import Visitor from '../../models/Visitor';
 import Tenant from '../../models/Tenant';
 import bcrypt from 'bcryptjs';
-import xlsx from 'xlsx';
+import xlsx from '@e965/xlsx';
 import os from 'os';
 import { SecurityManager } from '../../utils/securityManager';
 

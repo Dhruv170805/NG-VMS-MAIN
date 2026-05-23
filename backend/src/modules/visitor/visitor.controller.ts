@@ -1,6 +1,6 @@
 import { Response, RequestHandler } from 'express';
 import { Server } from 'socket.io';
-import * as XLSX from 'xlsx';
+import * as XLSX from '@e965/xlsx';
 import Visitor from '../../models/Visitor';
 import VisitorLog from '../../models/VisitorLog';
 import Employee from '../../models/Employee';

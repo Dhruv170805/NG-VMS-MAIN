@@ -1,5 +1,5 @@
 import { Response, RequestHandler } from 'express';
-import * as XLSX from 'xlsx';
+import * as XLSX from '@e965/xlsx';
 import Visitor from '../../models/Visitor';
 import { TenantRequest } from '../../types/requests';
 import { AnalyticsService } from './analytics.service';

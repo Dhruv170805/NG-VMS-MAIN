@@ -10,6 +10,8 @@
     "postinstall": "mkdir -p public/models && cp -r node_modules/@vladmandic/face-api/model/* public/models/"
   },
   "dependencies": {
+    "@ducanh2912/next-pwa": "^10.2.9",
+    "@e965/xlsx": "^0.20.3",
     "@types/node": "^25.6.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
@@ -23,9 +25,8 @@
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.479.0",
-    "next": "^16.2.4",
-    "next-pwa": "^5.6.0",
-    "postcss": "^8.5.14",
+    "next": "^16.2.6",
+    "postcss": "^8.5.15",
     "qrcode.react": "^4.2.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
@@ -35,7 +36,6 @@
     "tailwindcss": "^4.2.4",
     "tesseract.js": "^7.0.0",
     "typescript": "^6.0.3",
-    "xlsx": "^0.18.5",
     "xlsx-js-style": "^1.2.0",
     "zod": "^4.4.3",
     "zustand": "^5.0.13"
@@ -44,7 +44,11 @@
     "tar": "^7.4.3",
     "cross-spawn": "^7.0.6",
     "minimatch": "^10.0.1",
-    "protobufjs": "^7.4.0"
+    "protobufjs": "^7.4.0",
+    "node-fetch": "^3.3.2",
+    "postcss": "^8.5.15",
+    "serialize-javascript": "^6.0.2",
+    "xlsx": "npm:@e965/xlsx@^0.20.3"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",
