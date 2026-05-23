@@ -29,14 +29,22 @@ const getApiUrl = (): string => {
     return 'http://localhost:5000/api/v1';
   }
 
-  const { hostname, port } = window.location;
-  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+  const { hostname } = window.location;
+  const isLocal = 
+    hostname === 'localhost' || 
+    hostname === '127.0.0.1' || 
+    hostname === '::1' || 
+    hostname === '[::1]' || 
+    hostname.startsWith('192.168.') || 
+    hostname.startsWith('10.') || 
+    hostname.startsWith('172.') ||
+    hostname.endsWith('.local');
 
-  // ── 3. Local development (any port on localhost) ───────────────────────────
+  // ── 3. Local development (any port on localhost or LAN) ────────────────────
   // The backend always runs on :5000 locally regardless of the frontend port
   // (which Next.js may assign as :3000, :1716, :3001, etc.)
-  if (isLocalhost) {
-    return 'http://localhost:5000/api/v1';
+  if (isLocal) {
+    return `http://${hostname}:5000/api/v1`;
   }
 
   // ── 4. Production / LAN / IIS deployment ──────────────────────────────────
@@ -60,11 +68,19 @@ const getSocketUrl = (): string => {
   }
 
   const { hostname } = window.location;
-  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+  const isLocal = 
+    hostname === 'localhost' || 
+    hostname === '127.0.0.1' || 
+    hostname === '::1' || 
+    hostname === '[::1]' || 
+    hostname.startsWith('192.168.') || 
+    hostname.startsWith('10.') || 
+    hostname.startsWith('172.') ||
+    hostname.endsWith('.local');
 
   // ── 3. Local development ───────────────────────────────────────────────────
-  if (isLocalhost) {
-    return 'http://localhost:5000';
+  if (isLocal) {
+    return `http://${hostname}:5000`;
   }
 
   // ── 4. Production / LAN ───────────────────────────────────────────────────
@@ -77,31 +93,63 @@ const API_BASE_URL = getApiUrl();
 const SOCKET_URL = getSocketUrl();
 
 /**
+ * Resolves the pathname of the base API URL (e.g. "/api/v1").
+ */
+const getBasePathname = (): string => {
+  if (API_BASE_URL.startsWith('http://') || API_BASE_URL.startsWith('https://')) {
+    try {
+      return new URL(API_BASE_URL).pathname.replace(/\/+$/, '');
+    } catch (e) {
+      return '/api/v1';
+    }
+  }
+  return API_BASE_URL.replace(/\/+$/, '');
+};
+
+/**
  * Safely builds a full API URL with optional query parameters.
  *
- * Uses API_BASE_URL (always absolute) as the base, so new URL() here
- * can NEVER throw "Invalid URL" — regardless of environment.
- *
- * @param endpoint - Full endpoint string (e.g., API_CONFIG.ENDPOINTS.VISITORS)
- *                   OR a path relative to API_BASE_URL (e.g., '/visitors')
- * @param params   - Key/value query parameters. null/undefined values are skipped.
- *
- * @example
- *   buildUrl(API_CONFIG.ENDPOINTS.VISITORS, { limit: 50, search: 'John' })
- *   // → "http://localhost:5000/api/v1/visitors?limit=50&search=John"
+ * Resolves the path relative to the base URL or the current window location
+ * if the base URL is relative. Safe to call during SSR and in browser.
  */
 export const buildUrl = (
   endpoint: string,
   params?: Record<string, string | number | boolean | undefined | null>
 ): string => {
-  // Ensure we always have a clean absolute URL base
-  const base = API_BASE_URL.replace(/\/+$/, '');
+  let resolvedUrl: string;
 
-  // Handle both full endpoints and short paths
-  const isAbsolute = endpoint.startsWith('http://') || endpoint.startsWith('https://');
-  const fullUrl = isAbsolute ? endpoint : `${base}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) {
+    resolvedUrl = endpoint;
+  } else {
+    const base = API_BASE_URL.replace(/\/+$/, '');
+    const basePathname = getBasePathname();
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
 
-  const url = new URL(fullUrl); // Always safe: fullUrl is always absolute
+    let path: string;
+    if (basePathname && cleanEndpoint.startsWith(basePathname)) {
+      if (base.startsWith('http://') || base.startsWith('https://')) {
+        try {
+          const origin = new URL(base).origin;
+          path = `${origin}${cleanEndpoint}`;
+        } catch (e) {
+          path = cleanEndpoint;
+        }
+      } else {
+        path = cleanEndpoint;
+      }
+    } else {
+      path = `${base}${cleanEndpoint}`;
+    }
+
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      resolvedUrl = path;
+    } else {
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5000';
+      resolvedUrl = `${origin.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
+    }
+  }
+
+  const url = new URL(resolvedUrl);
 
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
