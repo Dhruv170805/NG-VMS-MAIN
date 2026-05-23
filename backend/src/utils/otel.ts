@@ -1,3 +1,8 @@
+// Disable default OTLP trace, metric, and log exporters to prevent ECONNREFUSED errors to port 4318
+process.env.OTEL_TRACES_EXPORTER = 'none';
+process.env.OTEL_METRICS_EXPORTER = 'none';
+process.env.OTEL_LOGS_EXPORTER = 'none';
+
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
