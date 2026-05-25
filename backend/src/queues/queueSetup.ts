@@ -26,6 +26,17 @@ export const emailQueue = new Queue('email-batching', {
   },
 });
 
+export const imageQueue = new Queue('image-optimization', {
+  connection: redisConnection,
+  defaultJobOptions: {
+    removeOnComplete: true,
+    removeOnFail: 1000,
+  },
+});
+
+// Import workers to ensure they are loaded and listening to queues
+import './workers';
+
 export const initQueues = async () => {
   try {
     // Clean up existing repeatable jobs to avoid duplicates

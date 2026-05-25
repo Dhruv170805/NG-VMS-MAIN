@@ -4,6 +4,7 @@ import Visitor from '../models/Visitor';
 import Employee from '../models/Employee';
 import { notifySecurityOverstay } from '../utils/notificationService';
 import logger from '../utils/logger';
+import { optimizeImage } from '../utils/imageOptimizer';
 
 // 1. Overstay Worker
 export const overstayWorker = new Worker(
@@ -119,4 +120,36 @@ reportWorker.on('failed', (job, err) => {
 
 emailWorker.on('failed', (job, err) => {
   logger.error({ jobId: job?.id, err: err.message }, 'Email worker job failed');
+});
+
+// 4. Image Optimization Worker
+export const imageWorker = new Worker(
+  'image-optimization',
+  async (job: Job) => {
+    const { visitorId, photoUrl, idProofPhotoUrl } = job.data;
+    logger.info({ visitorId, jobId: job.id }, 'Running background image optimization job');
+
+    try {
+      const updateData: any = {};
+      if (photoUrl) {
+        updateData.photoUrl = await optimizeImage(photoUrl);
+      }
+      if (idProofPhotoUrl) {
+        updateData.idProofPhotoUrl = await optimizeImage(idProofPhotoUrl);
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        await Visitor.findByIdAndUpdate(visitorId, updateData);
+        logger.info({ visitorId }, 'Successfully updated visitor with optimized images');
+      }
+    } catch (error: any) {
+      logger.error({ err: error.message, visitorId }, 'Error optimizing images in background');
+      throw error;
+    }
+  },
+  { connection: redisConnection }
+);
+
+imageWorker.on('failed', (job, err) => {
+  logger.error({ jobId: job?.id, err: err.message }, 'Image optimization worker job failed');
 });

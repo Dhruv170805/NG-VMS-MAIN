@@ -229,6 +229,12 @@ const Home = () => {
             </div>
 
             <div className={styles.status_section}>
+              <style dangerouslySetInnerHTML={{__html: `
+                .glass-input::placeholder {
+                  color: #1c1c1e !important;
+                  opacity: 1 !important;
+                }
+              `}} />
               <div style={{ marginBottom: '15px' }}>
                 <h4 style={{ fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '1rem' }}>
                    🔍 Track Status 📱

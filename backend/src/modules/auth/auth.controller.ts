@@ -16,7 +16,7 @@ export const registerEmployee: RequestHandler = async (req, res): Promise<void> 
     res.cookie('token', accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'strict',
       maxAge: 15 * 60 * 1000
     });
 
@@ -24,7 +24,7 @@ export const registerEmployee: RequestHandler = async (req, res): Promise<void> 
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'strict',
       maxAge: 30 * 24 * 60 * 60 * 1000
     });
 
@@ -53,7 +53,7 @@ export const loginEmployee: RequestHandler = async (req, res): Promise<void> => 
     res.cookie('token', accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'strict',
       maxAge: 15 * 60 * 1000
     });
 
@@ -61,7 +61,7 @@ export const loginEmployee: RequestHandler = async (req, res): Promise<void> => 
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'strict',
       maxAge: 30 * 24 * 60 * 60 * 1000
     });
 
@@ -151,14 +151,14 @@ export const refreshAccessToken: RequestHandler = async (req, res): Promise<void
     res.cookie('token', tokens.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'strict',
       maxAge: 15 * 60 * 1000
     });
 
     res.cookie('refreshToken', tokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'strict',
       maxAge: 30 * 24 * 60 * 60 * 1000
     });
 

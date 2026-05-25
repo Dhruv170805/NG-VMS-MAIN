@@ -4,6 +4,7 @@ import Visitor, { IVisitor } from '../../models/Visitor';
 import VisitorLog from '../../models/VisitorLog';
 import Employee from '../../models/Employee';
 import { optimizeImage } from '../../utils/imageOptimizer';
+import { imageQueue } from '../../queues/queueSetup';
 import { encrypt, decrypt } from '../../utils/encryption';
 import { notifyHostRegistration, notifyVisitorApproval, notifyHostArrival, notifyVisitorRejection, notifySecurityOverstay } from '../../utils/notificationService';
 import { PolicyEngine, ActionType } from '../../utils/policyEngine';
@@ -16,9 +17,10 @@ export class VisitorService {
       idProofPhotoUrl, requestedDuration, consentGiven
     } = data;
 
-    // Sovereign Image Optimization
-    const optimizedPhoto = await optimizeImage(photoUrl);
-    const optimizedIdPhoto = await optimizeImage(idProofPhotoUrl);
+    // Offload image optimization to background worker, set initial values to transparent placeholder
+    const placeholder = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+    const initialPhoto = photoUrl ? placeholder : '';
+    const initialIdPhoto = idProofPhotoUrl ? placeholder : '';
 
     let idNumberHash = '';
     if (idProofNumber) {
@@ -32,10 +34,10 @@ export class VisitorService {
       company: company?.trim(),
       purpose, 
       hostName: hostName || 'General Reception',
-      photoUrl: optimizedPhoto, 
+      photoUrl: initialPhoto, 
       idProofType, 
       idProofNumber: idProofNumber?.trim(), 
-      idProofPhotoUrl: optimizedIdPhoto, 
+      idProofPhotoUrl: initialIdPhoto, 
       idNumberHash,
       requestedDuration: requestedDuration || '1H',
       status: 'PENDING_GUARD',
@@ -57,7 +59,7 @@ export class VisitorService {
     
     // Automatically generate Visitor Signature when visitor submits form
     const signedAt = new Date();
-    const hash = crypto.createHmac('sha256', process.env.LICENSE_SECRET || 'default-secret-key-123')
+    const hash = crypto.createHmac('sha256', process.env.LICENSE_SECRET!)
       .update(`${visitor._id}:${visitor.name}:${signedAt.toISOString()}:REGISTERED`)
       .digest('hex');
     
@@ -68,14 +70,35 @@ export class VisitorService {
       signatureHash: hash
     };
 
-    await visitor.save();
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      await visitor.save({ session });
 
-    await VisitorLog.create({
-      visitorId: visitor._id,
-      tenantId,
-      event: 'Registered',
-      details: 'Awaiting Guard review at Central Hub.'
-    });
+      await VisitorLog.create([{
+        visitorId: visitor._id,
+        tenantId,
+        event: 'Registered',
+        details: 'Awaiting Guard review at Central Hub.'
+      }], { session });
+
+      await session.commitTransaction();
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+
+    if (photoUrl || idProofPhotoUrl) {
+      await imageQueue.add('optimize-visitor-images', {
+        visitorId: visitor._id,
+        photoUrl: photoUrl || '',
+        idProofPhotoUrl: idProofPhotoUrl || '',
+      }).catch(err => {
+        console.error('Failed to enqueue image optimization job:', err);
+      });
+    }
 
     return visitor;
   }
@@ -137,7 +160,7 @@ export class VisitorService {
 
       const hostName = visitor.hostName || actor.name;
       const signedAt = new Date();
-      const hash = crypto.createHmac('sha256', process.env.LICENSE_SECRET || 'default-secret-key-123')
+      const hash = crypto.createHmac('sha256', process.env.LICENSE_SECRET!)
         .update(`${id}:${hostName}:${signedAt.toISOString()}:APPROVED`)
         .digest('hex');
       dbUpdate.hostSignature = {
@@ -161,7 +184,7 @@ export class VisitorService {
     if (finalStatus === 'GATE_IN') {
       dbUpdate.checkInTime = new Date();
       const signedAt = new Date();
-      const hash = crypto.createHmac('sha256', process.env.LICENSE_SECRET || 'default-secret-key-123')
+      const hash = crypto.createHmac('sha256', process.env.LICENSE_SECRET!)
         .update(`${id}:${actor.name}:${signedAt.toISOString()}:GATE_IN`)
         .digest('hex');
       dbUpdate.guardSignature = {

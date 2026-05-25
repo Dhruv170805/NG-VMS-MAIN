@@ -53,7 +53,7 @@ export const registerVisitor: RequestHandler = async (req, res) => {
     io.to(tenantRoom).emit('visitor:new', visitor);
     io.to(tenantRoom).emit('stats:update', { type: 'new_visitor' });
 
-    res.status(201).json({ success: true, visitor });
+    res.status(202).json({ success: true, visitor });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
   }

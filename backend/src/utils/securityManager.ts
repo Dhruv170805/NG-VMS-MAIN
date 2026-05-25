@@ -59,7 +59,7 @@ export class SecurityManager {
 
   private constructor() {
     // AES Secret Key (256-bit)
-    this.secretKey = (process.env.LICENSE_SECRET || 'default-secret-key-123').substring(0, 32);
+    this.secretKey = (process.env.LICENSE_SECRET!).substring(0, 32);
     
     // RSA Public Key (Standard PEM)
     const publicKeyPath = path.join(process.cwd(), 'public.pem');
@@ -159,7 +159,7 @@ export class SecurityManager {
           }
           rawData = this.decryptAES(decoded.enc);
         } else {
-          if (process.env.NODE_ENV === 'production' && this.publicKey) {
+          if (process.env.NODE_ENV === 'production') {
             return { valid: false, reason: 'Unsigned licenses are not allowed in production' };
           }
           // Assume direct JSON base64 (Unsigned)
@@ -167,7 +167,7 @@ export class SecurityManager {
         }
         payload = JSON.parse(rawData);
       } catch (e) {
-        if (process.env.NODE_ENV === 'production' && this.publicKey) {
+        if (process.env.NODE_ENV === 'production') {
           return { valid: false, reason: 'Signed license payload required in production' };
         }
         // Raw AES Mode (Encrypted string directly)

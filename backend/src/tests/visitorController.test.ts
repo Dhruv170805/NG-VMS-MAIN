@@ -83,8 +83,8 @@ describe('TEST_GENERATOR: Visitor Intake & Approval Workflows', () => {
         idProofNumber,
         consentGiven: true
         });
-    if (res.status !== 201) console.error('Registration failed body:', res.body);
-    expect(res.status).toBe(201);
+    if (res.status !== 202) console.error('Registration failed body:', res.body);
+    expect(res.status).toBe(202);
     expect(res.body.success).toBe(true);
     expect(res.body.visitor.name).toBe('Alice Smith');
     expect(res.body.visitor.consentGiven).toBe(true);
