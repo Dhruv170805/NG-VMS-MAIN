@@ -52,7 +52,7 @@ log_container_state "ngvms_proxy"
 # ── 2. BACKEND API ACCESSIBILITY ──────────────────────────────────────────────
 if docker ps --filter "name=ngvms_backend" --filter "status=running" --quiet | grep -q . ; then
     # Query backend health route internally using curl inside the network
-    HTTP_STATUS=$(docker exec ngvms_backend curl -s -o /dev/null -w "%{http_code}" http://localhost:5001/health || echo "000")
+    HTTP_STATUS=$(docker exec ngvms_backend curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/health || echo "000")
     if [ "$HTTP_STATUS" -eq 200 ]; then
         log_ok "Backend API is responding operational (HTTP 200)."
     else

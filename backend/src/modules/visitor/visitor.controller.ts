@@ -166,7 +166,16 @@ export const lookupVisitor: RequestHandler = async (req, res) => {
   try {
     const visitor = await Visitor.findOne({ phone: (params.phone as string).trim(), tenantId: tenantId! }).sort({ createdAt: -1 });
     if (visitor) {
-      res.json({ success: true, visitor });
+      res.json({
+        success: true,
+        visitor: {
+          _id: visitor._id,
+          name: visitor.name,
+          email: visitor.email,
+          company: visitor.company || '',
+          idProofType: visitor.idProofType || ''
+        }
+      });
     } else {
       res.json({ success: false, message: 'Not found' });
     }

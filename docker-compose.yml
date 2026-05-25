@@ -21,7 +21,7 @@ services:
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
       SMTP_HOST: ${SMTP_HOST:-smtp_relay}
       SMTP_PORT: ${SMTP_PORT:-1025}
-      DISABLE_RATE_LIMITS: "true"
+      DISABLE_RATE_LIMITS: "false"
     depends_on:
       redis:
         condition: service_started

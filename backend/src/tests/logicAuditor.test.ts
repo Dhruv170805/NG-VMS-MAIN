@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import request from 'supertest';
 import mongoose from 'mongoose';
 import crypto from 'crypto';
@@ -25,7 +26,7 @@ app.use((req, res, next) => {
   req.user = { id: new mongoose.Types.ObjectId().toString(), name: 'Test Guard', role: 'GUARD', tenantId: new mongoose.Types.ObjectId().toString() };
   next();
 });
-app.set('socketio', { to: jest.fn().mockReturnThis(), emit: jest.fn() });
+app.set('socketio', { to: vi.fn().mockReturnThis(), emit: vi.fn() });
 app.post('/api/gate/checkin', gateCheckIn);
 
 describe('Logic Auditor: Gate Security & Blacklist', () => {

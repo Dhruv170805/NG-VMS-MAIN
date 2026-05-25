@@ -16,7 +16,7 @@ export const registerEmployee: RequestHandler = async (req, res): Promise<void> 
     res.cookie('token', accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
       maxAge: 15 * 60 * 1000
     });
 
@@ -24,7 +24,7 @@ export const registerEmployee: RequestHandler = async (req, res): Promise<void> 
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
       maxAge: 30 * 24 * 60 * 60 * 1000
     });
 
@@ -53,7 +53,7 @@ export const loginEmployee: RequestHandler = async (req, res): Promise<void> => 
     res.cookie('token', accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
       maxAge: 15 * 60 * 1000
     });
 
@@ -61,7 +61,7 @@ export const loginEmployee: RequestHandler = async (req, res): Promise<void> => 
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
       maxAge: 30 * 24 * 60 * 60 * 1000
     });
 
@@ -85,7 +85,8 @@ export const logoutEmployee: RequestHandler = async (req, res): Promise<void> =>
   const refreshToken = req.cookies.refreshToken;
   if (refreshToken) {
     try {
-      const secret = process.env.JWT_SECRET || 'default-secret';
+      const secret = process.env.JWT_SECRET;
+      if (!secret) throw new Error('JWT_SECRET is not configured');
       const decoded = jwt.verify(refreshToken, secret) as any;
       const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
       await redisConnection.del(`refresh_token:${decoded.id}:${tokenHash}`);
@@ -150,14 +151,14 @@ export const refreshAccessToken: RequestHandler = async (req, res): Promise<void
     res.cookie('token', tokens.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
       maxAge: 15 * 60 * 1000
     });
 
     res.cookie('refreshToken', tokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
       maxAge: 30 * 24 * 60 * 60 * 1000
     });
 

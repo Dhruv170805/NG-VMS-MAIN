@@ -143,7 +143,7 @@ export class SystemService {
       let extraConfig = {};
       if (licenseValid) {
         const [hosts, purposeSetting, guardConfigSetting, passRulesSetting, emergencyContactSetting] = await Promise.all([
-          Employee.find({ isHost: true, tenantId }).select('name department email phone'),
+          Employee.find({ isHost: true, tenantId }).select('name department'),
           Setting.findOne({ key: 'allowed_purposes', tenantId }),
           Setting.findOne({ key: 'guard_config', tenantId }),
           Setting.findOne({ key: 'pass_rules', tenantId }),
@@ -151,7 +151,7 @@ export class SystemService {
         ]);
         extraConfig = {
           purposes: purposeSetting ? purposeSetting.value : ['Meeting', 'Internship', 'Training', 'Personal', 'Other'],
-          hosts: hosts.map(h => ({ _id: h._id, name: h.name, department: h.department, email: h.email, phone: h.phone })),
+          hosts: hosts.map(h => ({ _id: h._id, name: h.name, department: h.department })),
           guard_config: guardConfigSetting ? guardConfigSetting.value : { autoScan: false, folderName: '', requireAadhaar: false, printMode: 'DIGITAL_ONLY' },
           pass_rules: passRulesSetting ? passRulesSetting.value : [],
           emergency_contact: emergencyContactSetting ? emergencyContactSetting.value : 'Contact Command Center at ext. 911 or +91 12345 67890 immediately.'
@@ -197,7 +197,17 @@ export class SystemService {
     for (const emp of employees) {
       await Employee.findOneAndUpdate(
         { email: emp.email, tenantId },
-        emp,
+        {
+          $setOnInsert: { password: emp.password, requiresPasswordChange: true },
+          $set: {
+            name: emp.name,
+            phone: emp.phone,
+            department: emp.department,
+            role: emp.role,
+            isAvailable: emp.isAvailable,
+            isHost: emp.isHost
+          }
+        },
         { upsert: true, new: true }
       );
     }
@@ -207,7 +217,7 @@ export class SystemService {
 
   static async getSystemData(tenantId: mongoose.Types.ObjectId) {
     const [hosts, purposeSetting, guardConfigSetting, passRulesSetting, emergencyContactSetting] = await Promise.all([
-      Employee.find({ isHost: true, tenantId }).select('name department email phone'),
+      Employee.find({ isHost: true, tenantId }).select('name department'),
       Setting.findOne({ key: 'allowed_purposes', tenantId }),
       Setting.findOne({ key: 'guard_config', tenantId }),
       Setting.findOne({ key: 'pass_rules', tenantId }),
@@ -216,7 +226,7 @@ export class SystemService {
 
     return {
       purposes: purposeSetting ? purposeSetting.value : ['Meeting', 'Internship', 'Training', 'Personal', 'Other'],
-      hosts: hosts.map(h => ({ _id: h._id, name: h.name, department: h.department, email: h.email, phone: h.phone })),
+      hosts: hosts.map(h => ({ _id: h._id, name: h.name, department: h.department })),
       guard_config: guardConfigSetting ? guardConfigSetting.value : { autoScan: false, folderName: '', requireAadhaar: false },
       pass_rules: passRulesSetting ? passRulesSetting.value : [],
       emergency_contact: emergencyContactSetting ? emergencyContactSetting.value : 'Contact Command Center at ext. 911 or +91 12345 67890 immediately.'

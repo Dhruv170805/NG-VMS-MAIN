@@ -199,7 +199,9 @@ app.use('/api/auth/login', authLimiter);
 app.set('socketio', io);
 
 // Database Connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/ng-vms';
+const MONGODB_URI = process.env.NODE_ENV === 'test'
+  ? (process.env.TEST_MONGODB_URI || 'mongodb://127.0.0.1:27017/ng-vms-integration-tests?directConnection=true')
+  : (process.env.MONGODB_URI || 'mongodb://localhost:27017/ng-vms');
 mongoose
   .connect(MONGODB_URI, {
     maxPoolSize: 20,
@@ -343,8 +345,23 @@ io.on('connection', (socket) => {
     socket.join(`tenant_${tenantId}_host_${hostId}`);
   });
 
+  let lastJoinTime = 0;
+  let joinRequests = 0;
+
   socket.on('join:visitor', async (visitorId: string) => {
     try {
+      const now = Date.now();
+      if (now - lastJoinTime < 5000) {
+        joinRequests++;
+        if (joinRequests > 5) {
+          socket.emit('error', 'Too many join requests. Back off.');
+          return;
+        }
+      } else {
+        joinRequests = 1;
+      }
+      lastJoinTime = now;
+
       if (!mongoose.Types.ObjectId.isValid(visitorId)) return;
       const visitor = await mongoose.model('Visitor').findOne({ _id: visitorId }) as any;
       if (visitor) {

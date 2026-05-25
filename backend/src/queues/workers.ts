@@ -17,7 +17,7 @@ export const overstayWorker = new Worker(
       const activeVisitors = await Visitor.find({
         status: { $in: ['GATE_IN', 'MEET_IN'] },
         expectedCheckout: { $lt: now },
-      });
+      }).populate('hostId');
 
       logger.info({ count: activeVisitors.length }, `Found ${activeVisitors.length} potential overstays`);
 
@@ -34,7 +34,7 @@ export const overstayWorker = new Worker(
         let hostIdStr = '';
 
         if (visitor.hostId) {
-          const host = await Employee.findById(visitor.hostId);
+          const host = visitor.hostId as any;
           if (host && host.email) {
             hostEmail = host.email;
             hostIdStr = host._id.toString();

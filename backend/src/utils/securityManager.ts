@@ -135,8 +135,8 @@ export class SecurityManager {
       return this.cachedFingerprint;
     } catch (error) {
       console.error('[SECURITY] Hardware Fingerprint Error:', error);
-      // Fallback stable identifiers if SI fails
-      const fallbackId = `${os.hostname()}-${os.platform()}-${os.totalmem()}`;
+      // Fallback stable identifiers if SI fails - omit volatile hostname which changes in dynamic containers
+      const fallbackId = `${os.platform()}-${os.arch()}-${os.cpus().length}-${os.totalmem()}`;
       return crypto.createHash('sha256').update(fallbackId).digest('hex');
     }
   }

@@ -3,6 +3,7 @@ import sharp from 'sharp';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { createCanvas } from 'canvas';
 import { PolicyEngine } from '../../utils/policyEngine';
 import { SecurityManager } from '../../utils/securityManager';
 
@@ -25,10 +26,17 @@ export class AadhaarService {
       verbosity: 0
     });
 
-    const pdfDocument = await loadingTask.promise;
-    const page = await pdfDocument.getPage(1);
-    const textContent = await page.getTextContent();
-    return textContent.items.map((item: any) => item.str).join(' ');
+    try {
+      const pdfDocument = await loadingTask.promise;
+      const page = await pdfDocument.getPage(1);
+      const textContent = await page.getTextContent();
+      return textContent.items.map((item: any) => item.str).join(' ');
+    } catch (error: any) {
+      if (error && (error.name === 'PasswordException' || error.message?.toLowerCase().includes('password'))) {
+        throw new Error('Incorrect password or PDF is password protected. Please provide a valid password.');
+      }
+      throw error;
+    }
   }
 
   static async processAadhaar(fileBuffer: Buffer, password?: string, tenantId?: mongoose.Types.ObjectId) {
@@ -45,16 +53,42 @@ export class AadhaarService {
 
     const masked = 'XXXX XXXX ' + aadhaar.slice(-4);
 
-    const imageBuffer = await sharp({
-      create: {
-        width: 100,
-        height: 100,
-        channels: 3,
-        background: { r: 255, g: 255, b: 255 }
-      }
-    })
-    .png()
-    .toBuffer();
+    let imageBuffer: Buffer;
+    try {
+      const pdfjs = await pdfjsPromise;
+      const data = new Uint8Array(fileBuffer);
+      const loadingTask = pdfjs.getDocument({
+        data,
+        password,
+        verbosity: 0
+      });
+      const pdfDocument = await loadingTask.promise;
+      const page = await pdfDocument.getPage(1);
+      const viewport = page.getViewport({ scale: 1.5 });
+
+      const canvas = createCanvas(viewport.width, viewport.height);
+      const context = canvas.getContext('2d');
+
+      await page.render({
+        canvasContext: context as any,
+        viewport: viewport,
+        canvas: canvas as any
+      } as any).promise;
+
+      const rawImageBuffer = canvas.toBuffer('image/png');
+      imageBuffer = await sharp(rawImageBuffer).png().toBuffer();
+    } catch (renderError) {
+      imageBuffer = await sharp({
+        create: {
+          width: 100,
+          height: 100,
+          channels: 3,
+          background: { r: 255, g: 255, b: 255 }
+        }
+      })
+      .png()
+      .toBuffer();
+    }
 
     return {
       maskedAadhaar: masked,

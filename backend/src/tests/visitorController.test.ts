@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import request from 'supertest';
 import mongoose from 'mongoose';
 import express from 'express';
@@ -21,16 +22,16 @@ app.use(tenantMiddleware);
 
 // Mock socket.io
 const mockSocketIo = {
-  to: jest.fn().mockReturnThis(),
-  emit: jest.fn()
+  to: vi.fn().mockReturnThis(),
+  emit: vi.fn()
 };
 app.set('socketio', mockSocketIo);
 
 // Mocks for notifications
-jest.mock('../utils/notificationService', () => ({
-  notifyHostRegistration: jest.fn(),
-  notifyVisitorApproval: jest.fn(),
-  notifyHostArrival: jest.fn()
+vi.mock('../utils/notificationService', () => ({
+  notifyHostRegistration: vi.fn(),
+  notifyVisitorApproval: vi.fn(),
+  notifyHostArrival: vi.fn()
 }));
 
 app.post('/api/visitors/register', registerVisitor);

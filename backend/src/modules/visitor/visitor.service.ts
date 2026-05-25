@@ -113,7 +113,7 @@ export class VisitorService {
     }
 
     const dbUpdate: any = {};
-    if (status) {
+    if (status === 'APPROVED') {
       dbUpdate.$addToSet = { approvedBy: actor.id };
     }
 
@@ -239,10 +239,11 @@ export class VisitorService {
     }
 
     if (search) {
+      const cleanSearch = search.replace(/[/\-\\^$*+?.()|[\]{}]/g, '\\$&');
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { company: { $regex: search, $options: 'i' } },
-        { phone: { $regex: search, $options: 'i' } }
+        { name: { $regex: '^' + cleanSearch, $options: 'i' } },
+        { company: { $regex: '^' + cleanSearch, $options: 'i' } },
+        { phone: { $regex: '^' + cleanSearch, $options: 'i' } }
       ];
     }
 
